@@ -1,0 +1,5 @@
+﻿level_3rd,skill_type,original_cnt,add_cnt,original_tags,suggested_add_tags
+.NET,后端框架,7,1,.NET Core|_|.NET MVC|_|ASP.NET|_|ASP.NET MVC|_|EF|_|WPF|_|Winform,ASP.NET Core Web API
+.NET,技术类型,8,3,AJAX|_|Socket技术|_|分布式技术|_|多线程|_|多进程|_|数据结构|_|网络协议|_|网络编程,CI/CD|_|RESTful API|_|数据库设计
+3D设计师,设计职能,7,3,游戏主美|_|美术设计师|_|设计主管|_|设计师|_|设计师助理|_|设计总监|_|设计经理,3D建模|_|3D资产管理|_|材质与贴图
+3D设计师,设计软件,11,3,3D MAX|_|AE|_|C4D|_|CAD|_|MAYA|_|Painter|_|PhotoShop|_|Premiere|_|SAI|_|Spine|_|U3D,Substance Designer|_|Unreal Engine|_|ZBrush
