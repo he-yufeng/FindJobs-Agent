@@ -1,0 +1,129 @@
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/
+ENV/
+
+# ==================== 数据文件 (大型/生成的) ====================
+# 爬取的原始数据
+crawled_jobs_raw*.json
+all_jobs*.json
+tech_giants_jobs.json
+bytedance_selenium_test.json
+baidu_test.json
+bytedance_test.json
+
+# 处理后的数据
+jobs_enriched*.csv
+jobs_enriched*.jsonl
+bytedance_jobs_enriched*.csv
+
+# 原始岗位数据（太大）
+bytedance_jobs.json
+bytedance_jobs\ copy.json
+
+# 网站数据（由 pipeline 生成）
+all_companies_jobs.json
+
+# 临时分析文件
+temp_jobs_for_analysis.json
+
+# ==================== 保留的配置文件 ====================
+# 以下文件需要保留，不要忽略：
+# - tech_taxonomy.json (岗位分类体系)
+# - llm_config.json (LLM配置模板)
+# - ai_user_tags.csv (用户标签示例)
+# - all_labels.csv (技能标签库)
+# - new_labels_list.csv (新标签列表)
+
+# ==================== 敏感信息 ====================
+API_key*.md
+.env
+.env.*
+*.key
+secrets/
+credentials/
+
+# ==================== 日志文件 ====================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==================== Node.js ====================
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm
+.yarn-integrity
+
+# ==================== IDE/编辑器 ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ==================== 系统文件 ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.bak
+*~
+
+# ==================== 备份和临时文件 ====================
+backup/
+*.backup
+*.tmp
+*.temp
+
+# ==================== 压缩包 ====================
+*.zip
+*.tar.gz
+*.rar
+
+# ==================== 额外的数据文件 ====================
+tencent_jobs.json
+test_crawl.json
+code_submission/bytedance_jobs.json
+
+# ==================== 上传的用户文件 ====================
+uploads/
+*.pdf
+*.docx
+
+# ==================== 报告 (可选保留) ====================
+# report/
+
+# ==================== Bolt (前端工具) ====================
+FrontEnd/.bolt/
