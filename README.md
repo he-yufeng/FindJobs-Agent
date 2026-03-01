@@ -1,12 +1,13 @@
 # FindJobs-Agent 🔍
 
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/universeplayer/FindJobs-Agent?style=social)](https://github.com/universeplayer/FindJobs-Agent)
+[![CI](https://github.com/universeplayer/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/universeplayer/FindJobs-Agent/actions/workflows/ci.yml)
+
 **基于大语言模型的智能求职平台**
 
 一个集成了岗位数据爬取、LLM智能分析、简历解析和AI模拟面试的全栈求职辅助系统。
-
-![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
-![React](https://img.shields.io/badge/React-18+-61DAFB.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## ✨ 核心功能
 
