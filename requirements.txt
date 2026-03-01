@@ -4,3 +4,4 @@ pandas==2.1.4
 requests==2.31.0
 PyPDF2==3.0.1
 urllib3<2
+openai>=1.0.0
