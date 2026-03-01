@@ -5,3 +5,11 @@ requests==2.31.0
 PyPDF2==3.0.1
 urllib3<2
 openai>=1.0.0
+
+# Optional: for Selenium-based crawlers (job_crawler_selenium.py)
+# selenium>=4.0.0
+# webdriver-manager>=4.0.0
+
+# Optional: for PDF generation (md_to_pdf.py)
+# markdown>=3.5
+# reportlab>=4.0
