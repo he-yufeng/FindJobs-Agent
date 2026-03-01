@@ -19,17 +19,9 @@ try:
     from reportlab.pdfbase.ttfonts import TTFont
     import re
 except ImportError:
-    print("正在安装必需的库...")
-    os.system("pip3 install markdown reportlab")
-    import markdown
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
-    from reportlab.lib.enums import TA_LEFT, TA_CENTER
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    import re
+    print("Error: Required libraries not installed.")
+    print("Please run: pip install markdown reportlab")
+    sys.exit(1)
 
 
 def markdown_to_reportlab(text):
@@ -146,17 +138,17 @@ def md_to_pdf(md_file, pdf_file=None):
     
     # 构建 PDF
     doc.build(story)
-    print(f"✅ 成功将 {md_file} 转换为 {pdf_file}")
+    print(f"Successfully converted {md_file} to {pdf_file}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("使用方法: python3 md_to_pdf.py <input.md> [output.pdf]")
+        print("Usage: python3 md_to_pdf.py <input.md> [output.pdf]")
         sys.exit(1)
     
     md_file = sys.argv[1]
     if not os.path.exists(md_file):
-        print(f"❌ 错误: 文件 {md_file} 不存在")
+        print(f"Error: File {md_file} does not exist")
         sys.exit(1)
     
     # 如果没有指定输出文件，使用相同的文件名但扩展名为 .pdf
@@ -168,7 +160,6 @@ if __name__ == "__main__":
     try:
         md_to_pdf(md_file, pdf_file)
     except Exception as e:
-        print(f"❌ 转换失败: {e}")
-        print("\n提示: 如果遇到依赖问题，请运行: pip3 install markdown reportlab")
+        print(f"Conversion failed: {e}")
+        print("\nHint: If you have dependency issues, please run: pip install markdown reportlab")
         sys.exit(1)
-
