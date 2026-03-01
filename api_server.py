@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-后端API服务器
+搎端API服务器
 提供简历解析、岗位匹配、智能面试等功能
 """
 from __future__ import annotations
@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +32,7 @@ logging.basicConfig(
 
 # 初始化Flask应用
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(32).hex())
 CORS(app)  # 允许跨域请求
 
 # 配置
@@ -52,6 +54,14 @@ interview_agent = InterviewAgent()
 resumes_store: Dict[str, Dict[str, Any]] = {}
 jobs_store: List[Dict[str, Any]] = []
 interview_sessions: Dict[str, Dict[str, Any]] = {}
+
+# Regex for valid UUID-style file IDs (path traversal protection)
+_VALID_FILE_ID_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
+
+
+def _is_safe_file_id(file_id: str) -> bool:
+    """Validate file_id to prevent path traversal attacks."""
+    return bool(file_id) and _VALID_FILE_ID_RE.match(file_id) is not None
 
 
 def allowed_file(filename: str) -> bool:
@@ -124,8 +134,10 @@ def upload_resume():
 
 @app.route('/api/resume/file/<file_id>', methods=['GET'])
 def get_resume_file(file_id: str):
-    """获取简历文件"""
+    """获取箠历文件"""
     try:
+        if not _is_safe_file_id(file_id):
+            return jsonify({'error': 'Invalid file ID'}), 400
         # 查找文件
         for file_path in UPLOAD_FOLDER.glob(f"{file_id}_*"):
             if file_path.is_file():
@@ -138,7 +150,7 @@ def get_resume_file(file_id: str):
 
 @app.route('/api/resume/<resume_id>', methods=['GET'])
 def get_resume(resume_id: str):
-    """获取简历详情"""
+    """获取箠历详情"""
     if resume_id not in resumes_store:
         return jsonify({'error': 'Resume not found'}), 404
     
@@ -161,7 +173,7 @@ def get_resume(resume_id: str):
 def get_jobs():
     """获取岗位列表
     
-    数据加载优先级：
+    数据加载伈先级：
     1. jobs_enriched.csv - 流水线智能分析后的完整数据（含技能评分）
     2. all_companies_jobs.json - 爬取的JSON数据（可能含技能标签）
     3. bytedance_jobs_enriched.csv - 原始字节跳动数据
@@ -237,12 +249,12 @@ def get_jobs():
                 }
                 jobs.append(job)
             
-            # 统计有技能标签的岗位
+            # 统计朊技能标签的岗位
             with_skills = sum(1 for j in jobs if j['required_skills'])
             data_source = "json"
             logging.info(f"从JSON加载了 {len(jobs)} 个岗位（{with_skills}个含技能标签）")
         
-        # 优先级3: 原始字节跳动CSV
+        # 优先级3: 原始字节跳动mCSV
         elif (ROOT_DIR / 'bytedance_jobs_enriched.csv').exists():
             csv_file = ROOT_DIR / 'bytedance_jobs_enriched.csv'
             logging.info(f"从原始CSV文件加载岗位: {csv_file}")
@@ -253,7 +265,7 @@ def get_jobs():
                 job = {
                     'id': str(row.get('job_id', uuid.uuid4())),
                     'title': str(row.get('job_title', '')),
-                    'company': str(row.get('company_name', '字节跳动')),
+                    'company': str(row.get('company_name', '字节旋动')),
                     'description': str(row.get('job_description', '')),
                     'required_skills': parse_skill_tags(skill_tags_raw),
                     'location': str(row.get('location', '')),
@@ -294,7 +306,7 @@ def parse_skill_tags(tag_string: str) -> List[str]:
         return []
     
     skills = []
-    # 格式: "技能名 , 分数 , AI | 技能名 , 分数 , AI"
+    # 格式: "技能名 %> 分数 , AI | 技能名 %> 分数 , AI"
     parts = tag_string.split('|')
     for part in parts:
         part = part.strip()
@@ -497,5 +509,5 @@ def get_interview_session(session_id: str):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
-
+    debug = os.environ.get('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')
+    app.run(host='0.0.0.0', port=port, debug=debug)
