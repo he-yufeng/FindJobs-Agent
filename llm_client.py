@@ -16,7 +16,7 @@ from llm_utils import apply_temperature_strategy
 try:
     # reuse key manager if available
     from tag_rate import APIKeyManager, load_api_keys
-except Exception:
+except ImportError:
     APIKeyManager = None  # type: ignore
     load_api_keys = None  # type: ignore
 
@@ -40,7 +40,7 @@ def load_llm_config() -> Dict[str, Any]:
     if DEFAULT_CONFIG_FILE.exists():
         try:
             cfg = json.loads(DEFAULT_CONFIG_FILE.read_text(encoding="utf-8"))
-        except Exception as e:
+        except (json.JSONDecodeError, ValueError, OSError) as e:
             logging.warning(f"无法解析 llm_config.json，使用默认配置: {e}")
     # env overrides
     provider = os.getenv("LLM_PROVIDER", cfg.get("provider", DEFAULTS["provider"]))
@@ -98,7 +98,7 @@ class LLMClient:
         try:
             api_keys = load_api_keys(key_file)
             return APIKeyManager(api_keys)
-        except Exception as e:
+        except (FileNotFoundError, ValueError, OSError) as e:
             logging.warning(f"无法从 {key_file} 加载API Key: {e}")
             return None
 
@@ -157,7 +157,7 @@ class LLMClient:
                 if content:
                     return content
                 raise ValueError("LLM 响应为空或缺少 content。")
-            except Exception as e:
+            except (requests.RequestException, ValueError, KeyError) as e:
                 last_err = e
                 logging.warning(f"LLM调用失败（{self.provider}, 第{attempt}/{self.max_retry}次）: {e}")
                 if attempt < self.max_retry:
