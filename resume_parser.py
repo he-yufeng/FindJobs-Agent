@@ -46,9 +46,13 @@ class ResumeParser:
     """简历解析器"""
     
     def __init__(self):
-        # 加载API keys
-        api_keys = load_api_keys(DEFAULT_API_KEY_FILE)
-        self.api_key_manager = APIKeyManager(api_keys)
+        import os
+        if DEFAULT_API_KEY_FILE.exists():
+            api_keys = load_api_keys(DEFAULT_API_KEY_FILE)
+            self.api_key_manager = APIKeyManager(api_keys)
+        else:
+            env_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY", "")
+            self.api_key_manager = APIKeyManager([env_key]) if env_key else None
         self.llm = LLMClient(self.api_key_manager)
         
         # 加载技能标签库与岗位族(level_3rd -> tags)
