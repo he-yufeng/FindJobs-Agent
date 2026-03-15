@@ -1,4 +1,4 @@
-import { FileText, Briefcase, MessageSquare } from 'lucide-react';
+import { FileText, Briefcase } from 'lucide-react';
 
 interface NavigationProps {
   currentPage: 'resume' | 'jobs' | 'interview';
@@ -9,7 +9,6 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
   const navItems = [
     { id: 'resume' as const, label: '简历分析', icon: FileText },
     { id: 'jobs' as const, label: '岗位匹配', icon: Briefcase },
-    { id: 'interview' as const, label: 'AI 面试', icon: MessageSquare }
   ];
 
   return (
@@ -21,7 +20,7 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <FileText className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-semibold text-gray-900">智能简历助手</span>
+              <span className="text-xl font-semibold text-gray-900">FindBestCareers</span>
             </div>
           </div>
 

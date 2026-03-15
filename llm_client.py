@@ -16,7 +16,7 @@ from llm_utils import apply_temperature_strategy
 try:
     # reuse key manager if available
     from tag_rate import APIKeyManager, load_api_keys
-except ImportError:
+except Exception:
     APIKeyManager = None  # type: ignore
     load_api_keys = None  # type: ignore
 
@@ -40,12 +40,12 @@ def load_llm_config() -> Dict[str, Any]:
     if DEFAULT_CONFIG_FILE.exists():
         try:
             cfg = json.loads(DEFAULT_CONFIG_FILE.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, ValueError, OSError) as e:
+        except Exception as e:
             logging.warning(f"无法解析 llm_config.json，使用默认配置: {e}")
     # env overrides
     provider = os.getenv("LLM_PROVIDER", cfg.get("provider", DEFAULTS["provider"]))
     model = os.getenv("LLM_MODEL", cfg.get("model", DEFAULTS["model"]))
-    api_url = os.getenv("LLM_API_URL")  # optional
+    api_url = os.getenv("LLM_API_URL") or cfg.get("api_url")  # from env or config file
     timeout = int(os.getenv("LLM_TIMEOUT_S", str(cfg.get("timeout", DEFAULTS["timeout"]))))
     max_retry = int(os.getenv("LLM_MAX_RETRY", str(cfg.get("max_retry", DEFAULTS["max_retry"]))))
     temperature = float(os.getenv("LLM_TEMPERATURE", str(cfg.get("temperature", DEFAULTS["temperature"]))))
@@ -91,6 +91,13 @@ class LLMClient:
                 self.api_url = DEFAULTS["api_url_openai"]
 
     def _maybe_build_key_manager(self) -> Optional["APIKeyManager"]:
+        # First check env var
+        env_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("API_KEY")
+        if env_key:
+            if APIKeyManager is not None:
+                return APIKeyManager([env_key])
+            return None
+
         if APIKeyManager is None or load_api_keys is None:
             return None
         # Default to API_key-openai.md in project root
@@ -98,7 +105,7 @@ class LLMClient:
         try:
             api_keys = load_api_keys(key_file)
             return APIKeyManager(api_keys)
-        except (FileNotFoundError, ValueError, OSError) as e:
+        except Exception as e:
             logging.warning(f"无法从 {key_file} 加载API Key: {e}")
             return None
 
@@ -157,7 +164,7 @@ class LLMClient:
                 if content:
                     return content
                 raise ValueError("LLM 响应为空或缺少 content。")
-            except (requests.RequestException, ValueError, KeyError) as e:
+            except Exception as e:
                 last_err = e
                 logging.warning(f"LLM调用失败（{self.provider}, 第{attempt}/{self.max_retry}次）: {e}")
                 if attempt < self.max_retry:
