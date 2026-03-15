@@ -51,8 +51,13 @@ class InterviewAgent:
     """Intelligent interview agent"""
     
     def __init__(self):
-        api_keys = load_api_keys(DEFAULT_API_KEY_FILE)
-        self.api_key_manager = APIKeyManager(api_keys)
+        import os
+        if DEFAULT_API_KEY_FILE.exists():
+            api_keys = load_api_keys(DEFAULT_API_KEY_FILE)
+            self.api_key_manager = APIKeyManager(api_keys)
+        else:
+            env_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("API_KEY", "")
+            self.api_key_manager = APIKeyManager([env_key]) if env_key else None
         self.llm = LLMClient(self.api_key_manager)
     
     def _call_llm(self, system_prompt: str, user_prompt: str, response_format: Optional[Dict[str, Any]] = None) -> str:
@@ -144,22 +149,38 @@ class InterviewAgent:
         resume_context = self._build_resume_context(resume_data)
         job_context = self._build_job_context(job_data)
         
-        system_prompt = (
-            "You are a professional, friendly, and experienced AI interviewer. "
-            "The interview has three stages: (1) self-introduction, (2) technical Q&A, (3) summary & feedback. "
-            "You MUST always respond in English. "
-            "In this step, only produce a short opening greeting and a self‑introduction prompt."
-        )
-        
+        has_job = bool(job_data and job_data.get('title'))
+
+        if has_job:
+            system_prompt = (
+                "You are a professional, friendly, and experienced AI interviewer. "
+                f"You are conducting an interview specifically for the role of '{job_data.get('title', '')}' at {job_data.get('company', 'the company')}. "
+                "The interview has three stages: (1) self-introduction, (2) technical Q&A targeting this specific role, (3) summary & feedback. "
+                "You MUST always respond in Chinese (中文)."
+                "In this step, only produce a short opening greeting and a self‑introduction prompt. "
+                "The greeting MUST mention the specific job title and company. "
+                "The self-intro prompt should ask the candidate to explain why they are interested in THIS specific role."
+            )
+        else:
+            system_prompt = (
+                "You are a professional, friendly, and experienced AI interviewer. "
+                "The interview has three stages: (1) self-introduction, (2) technical Q&A, (3) summary & feedback. "
+                "You MUST always respond in Chinese (中文)."
+                "In this step, only produce a short opening greeting and a self‑introduction prompt."
+            )
+
         user_prompt = (
             f"Candidate resume (for your reference):\n{resume_context}\n\n"
-            f"Target job information (if any):\n{job_context}\n\n"
+            f"Target job information:\n{job_context}\n\n"
             "Please output:\n"
-            "1. greeting: a concise English opening (2–3 sentences), welcoming the candidate and briefly explaining the three stages.\n"
-            "2. self_intro: an English prompt asking the candidate to introduce themselves (education, work experience, key skills), "
-            "   and optionally what position they want to interview for (which may be different from the resume).\n\n"
+            "1. greeting: a concise English opening (2–3 sentences), welcoming the candidate"
+            + (f" to interview for the {job_data.get('title', '')} position" if has_job else "") +
+            " and briefly explaining the three stages.\n"
+            "2. self_intro: an English prompt asking the candidate to introduce themselves (education, work experience, key skills)"
+            + (f", and specifically why they are interested in this {job_data.get('title', '')} role and what relevant experience they have" if has_job else
+               ", and optionally what position they want to interview for") + ".\n\n"
             "Output format (strict JSON, no extra text):\n"
-            '{"greeting": "opening in English", "self_intro": "self introduction prompt in English", "stage": "greeting"}'
+            '{"greeting": "opening in Chinese", "self_intro": "self introduction prompt in Chinese", "stage": "greeting"}'
         )
         
         try:
@@ -181,7 +202,7 @@ class InterviewAgent:
                 "greeting": "Hello, welcome to this interview.",
                 "question": None,
                 "self_intro": (
-                    "Please briefly introduce yourself in English: your education, work experience, "
+                    "Please briefly introduce yourself in Chinese: your education, work experience, "
                     "key skills, and what role you would like to interview for."
                 ),
                 "stage": "greeting"
@@ -206,18 +227,35 @@ class InterviewAgent:
             # If there is no explicit job info, derive core skills from resume
             required_skills = [s.get('skill_name', '') for s in resume_data['skills'][:5]]
         
-        system_prompt = (
-            "You are a professional technical interviewer. "
-            "You MUST answer strictly in English. "
-            "Generate one concrete technical interview question for this candidate. "
-            "The question should:\n"
-            "1) target the core skills required for the role;\n"
-            "2) be medium difficulty by default;\n"
-            "3) require the candidate to demonstrate real project experience and reasoning ability;\n"
-            "4) avoid repeating previously asked questions.\n\n"
-            "Respond ONLY with strict JSON (no extra text or markdown):\n"
-            "{\"question\":\"question text in English\",\"difficulty\":\"easy|medium|hard\",\"category\":\"technical\"}"
-        )
+        has_job = bool(job_data and job_data.get('title'))
+
+        if has_job:
+            system_prompt = (
+                "You are a professional technical interviewer. "
+                f"You are interviewing a candidate specifically for the role of '{job_data.get('title', '')}' at {job_data.get('company', 'the company')}. "
+                "You MUST answer strictly in Chinese (中文)."
+                "Generate one concrete technical interview question that DIRECTLY tests the skills and knowledge required for THIS specific role. "
+                "The question should:\n"
+                f"1) be closely related to the job's required skills: {', '.join(required_skills[:5]) if required_skills else 'general skills'};\n"
+                "2) test practical knowledge that would be needed on the job;\n"
+                "3) require the candidate to demonstrate real project experience and reasoning ability;\n"
+                "4) avoid repeating previously asked questions.\n\n"
+                "Respond ONLY with strict JSON (no extra text or markdown):\n"
+                "{\"question\":\"question text in Chinese\",\"difficulty\":\"easy|medium|hard\",\"category\":\"technical\"}"
+            )
+        else:
+            system_prompt = (
+                "You are a professional technical interviewer. "
+                "You MUST answer strictly in Chinese (中文)."
+                "Generate one concrete technical interview question for this candidate. "
+                "The question should:\n"
+                "1) target the core skills required for the role;\n"
+                "2) be medium difficulty by default;\n"
+                "3) require the candidate to demonstrate real project experience and reasoning ability;\n"
+                "4) avoid repeating previously asked questions.\n\n"
+                "Respond ONLY with strict JSON (no extra text or markdown):\n"
+                "{\"question\":\"question text in Chinese\",\"difficulty\":\"easy|medium|hard\",\"category\":\"technical\"}"
+            )
         
         asked_text = "\nPreviously asked questions:\n" + "\n".join(f"- {q}" for q in asked_questions[-3:]) if asked_questions else ""
         
@@ -280,7 +318,7 @@ class InterviewAgent:
         
         system_prompt = (
             "You are a professional, strict but fair AI interviewer. "
-            "You MUST respond strictly in English. "
+            "You MUST respond strictly in Chinese (中文)."
             "Given the question, the candidate's resume, and what they said about themselves, "
             "you need to grade the answer and give concise, helpful feedback.\n\n"
             "Scoring rules (0–5):\n"
@@ -291,7 +329,7 @@ class InterviewAgent:
             "1: mostly incorrect or very superficial;\n"
             "0: completely off-topic or no answer.\n\n"
             "Output strict JSON only:\n"
-            '{"score": <integer 0-5>, "feedback": "text in English", "strengths": ["..."], "improvements": ["..."], "needs_followup": true/false}'
+            '{"score": <integer 0-5>, "feedback": "text in Chinese", "strengths": ["..."], "improvements": ["..."], "needs_followup": true/false}'
         )
         
         user_prompt = (
@@ -344,7 +382,7 @@ class InterviewAgent:
                 "You are a professional AI interviewer. "
                 "You have just read the candidate's resume and their self-introduction. "
                 "Now you need to transition from the introduction stage to the technical Q&A stage. "
-                "Respond ONLY in English. "
+                "Respond ONLY in Chinese. "
                 "Write 1–2 friendly sentences that (1) thank the candidate for their introduction, "
                 "(2) briefly acknowledge what they said (role they want / background), and "
                 "(3) clearly state that you are about to ask the first technical question. "
@@ -353,7 +391,7 @@ class InterviewAgent:
             ack_prompt_user = (
                 f"Candidate resume (for reference):\n{resume_context}\n\n"
                 f"Candidate self-introduction:\n{user_message}\n\n"
-                "Please output the transition message in English as described."
+                "Please output the transition message in Chinese as described."
             )
             try:
                 ack = self._call_llm(ack_prompt_sys, ack_prompt_user)
@@ -481,7 +519,7 @@ class InterviewAgent:
         
         system_prompt = (
             "You are a senior HR expert and career coach. "
-            "You MUST respond in English. "
+            "You MUST respond in Chinese (中文)."
             "Based on the interview record, write a concise but comprehensive feedback report for the candidate. "
             "The report should include: overall evaluation, key strengths, main areas for improvement, skill profile, and concrete learning suggestions. "
             "Tone: friendly, encouraging, but professional and honest."
@@ -501,7 +539,7 @@ class InterviewAgent:
             f"Target job information:\n{job_context}\n\n"
             f"{interview_summary}\n\n"
             f"Average score: {avg_score:.2f}/5.00\n\n"
-            "Please write the final feedback report in English, covering:\n"
+            "Please write the final feedback report in Chinese, covering:\n"
             "1) Overall evaluation;\n"
             "2) 1–2 key strengths;\n"
             "3) 1–2 main areas for improvement with actionable suggestions;\n"
