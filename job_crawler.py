@@ -29,12 +29,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# User-Agent 池
+# User-Agent 池。去掉了 Firefox UA —— 字节等多家 anti-bot 会识别它为机器人直接返 405
 USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 ]
 
@@ -790,8 +789,9 @@ class ByteDanceCrawler(JobCrawlerBase):
     def crawl(self) -> List[Dict]:
         logger.info(f"开始爬取 {self.company_name}...")
         
-        # 初始化 Session，尝试获取 CSRF Token
+        # 字节的 anti-bot 会把 Firefox UA 识别成机器人返 405，必须用 Chrome UA
         self.session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Referer": "https://jobs.bytedance.com/experienced/position",
             "Origin": "https://jobs.bytedance.com"
         })
@@ -814,56 +814,63 @@ class ByteDanceCrawler(JobCrawlerBase):
         limit = 20  # 字节 API 通常分页较小
         
         while True:
-            url = "https://jobs.bytedance.com/api/v1/search/external/posts"
+            url = "https://jobs.bytedance.com/api/v1/search/job/posts"
             payload = {
+                "keyword": "",
                 "limit": limit,
                 "offset": offset,
-                "keyword": "",
-                "attribute_code_list": [] 
+                "portal_entrance": 1,
+                "job_category_id_list": [],
+                "location_code_list": [],
+                "subject_id_list": [],
+                "recruitment_id_list": [],
             }
-            
+
             resp = self._request(url, method='POST', json=payload)
             if not resp:
                 if offset == 0:
                     logger.warning("无法连接字节跳动 API，可能是网络限制或反爬策略更新")
                 break
-            
+
             try:
-                data = resp.json()
-                jobs = data.get('posts', [])
+                payload_data = resp.json().get('data') or {}
+                jobs = payload_data.get('job_post_list') or []
                 if not jobs:
                     break
-                
+
                 for job in jobs:
-                    # 提取城市信息
-                    city_list = []
-                    if job.get('city_info'):
-                        city_list = [c.get('name', '') for c in job.get('city_info') if isinstance(c, dict)]
-                    
-                    # 提取职位类别
+                    # city_list 是数组，city_info 是单城市 dict（新 shape，2025 起）
+                    cities = []
+                    for c in job.get('city_list') or []:
+                        if isinstance(c, dict) and c.get('name'):
+                            cities.append(c['name'])
+                    if not cities and isinstance(job.get('city_info'), dict):
+                        n = job['city_info'].get('name')
+                        if n:
+                            cities.append(n)
+
                     job_cat = ''
                     if isinstance(job.get('job_category'), dict):
-                        job_cat = job.get('job_category', {}).get('name', '')
-                        
-                    # 提取招聘类型 (社招/校招)
+                        job_cat = job['job_category'].get('name', '')
+
                     recruit_type = '社招'
                     if isinstance(job.get('recruit_type'), dict):
-                        recruit_type = job.get('recruit_type', {}).get('name', '')
+                        recruit_type = job['recruit_type'].get('name', '社招')
 
                     all_jobs.append(self._normalize_job({
                         'job_title': job.get('title', ''),
                         'job_id': job.get('id', ''),
                         'category': recruit_type,
-                        'location': ', '.join(city_list),
+                        'location': ', '.join(cities),
                         'job_type': job_cat,
-                        'special_program': str(job.get('sub_job_category_list', [])),
+                        'special_program': str(job.get('sub_job_category_list') or []),
                         'job_description': job.get('description', ''),
                         'job_requirements': job.get('requirement', ''),
                         'apply_url': f"https://jobs.bytedance.com/experienced/position/{job.get('id', '')}",
                         'source_url': f"https://jobs.bytedance.com/experienced/position/{job.get('id', '')}",
                     }))
-                
-                count = data.get('count', 0)
+
+                count = payload_data.get('count', 0)
                 if offset + limit >= count:
                     break
                 
