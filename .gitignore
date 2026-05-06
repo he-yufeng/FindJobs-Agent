@@ -53,6 +53,7 @@ temp_jobs_for_analysis.json
 API_key*.md
 .env
 .env.*
+ms_deploy.json
 *.key
 secrets/
 credentials/
