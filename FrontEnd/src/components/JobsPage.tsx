@@ -4,6 +4,7 @@ import { JobPosition } from '../types';
 import { getJobs, simulateJobMatching } from '../lib/mockApi';
 
 const ITEMS_PER_PAGE = 4;
+type MatchDetail = { match_count: number; matched_skills: string[] };
 
 interface JobsPageProps {
   onStartInterview: (job: JobPosition) => void;
@@ -76,7 +77,7 @@ export default function JobsPage({ onStartInterview }: JobsPageProps) {
     try {
       const matches = await simulateJobMatching(resumeId);
       const scoreMap: Record<string, number> = {};
-      const matchDetailsMap: Record<string, any> = {};
+      const matchDetailsMap: Record<string, MatchDetail> = {};
       
       matches.forEach(match => {
         scoreMap[match.job_id] = match.match_score;

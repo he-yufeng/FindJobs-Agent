@@ -25,7 +25,7 @@ Create `.env` in `FrontEnd/` if you want to point to a non-default backend:
 
 ```env
 # Backend API base (default http://localhost:5000/api if not set)
-VitaliApiURL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5000/api
 ```
 
 Start dev server:
