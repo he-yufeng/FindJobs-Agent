@@ -45,6 +45,8 @@ export interface JobPosition {
   source_url?: string;
 }
 
+export type SkillMatchDetail = Record<string, string | number | boolean | null>;
+
 export interface JobMatch {
   id?: string;
   resume_id?: string;
@@ -58,7 +60,7 @@ export interface JobMatch {
     total_job_skills: number;
     match_rate: number;
     avg_resume_score: number;
-    matched_skills_detail: any[];
+    matched_skills_detail: SkillMatchDetail[];
   };
 }
 
