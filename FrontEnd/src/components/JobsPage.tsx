@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Search, MapPin, DollarSign, CheckCircle2, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { JobPosition } from '../types';
 import { getJobs, simulateJobMatching } from '../lib/mockApi';
 
 const ITEMS_PER_PAGE = 4;
-type MatchDetail = { match_count: number; matched_skills: string[] };
 
 interface JobsPageProps {
   onStartInterview: (job: JobPosition) => void;
@@ -22,27 +21,7 @@ export default function JobsPage({ onStartInterview }: JobsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [resumeId, setResumeId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // 从localStorage获取resume_id
-    const savedResumeId = localStorage.getItem('current_resume_id');
-    if (savedResumeId) {
-      setResumeId(savedResumeId);
-    }
-    loadJobs();
-  }, []);
-
-  useEffect(() => {
-    // 使用当前的matchScores进行排序
-    applyFiltersAndSort(jobs, matchScores);
-  }, [jobs, selectedKeywords, searchQuery, matchScores]);
-
-  useEffect(() => {
-    if (resumeId && jobs.length > 0) {
-      loadMatchScores();
-    }
-  }, [resumeId, jobs]);
-
-  const loadJobs = async () => {
+  const loadJobs = useCallback(async () => {
     try {
       const jobsData = await getJobs();
       setJobs(jobsData);
@@ -69,52 +48,10 @@ export default function JobsPage({ onStartInterview }: JobsPageProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadMatchScores = async () => {
-    if (!resumeId) return;
-    
-    try {
-      const matches = await simulateJobMatching(resumeId);
-      const scoreMap: Record<string, number> = {};
-      const matchDetailsMap: Record<string, MatchDetail> = {};
-      
-      matches.forEach(match => {
-        scoreMap[match.job_id] = match.match_score;
-        matchDetailsMap[match.job_id] = {
-          match_count: match.match_details?.match_count || 0,
-          matched_skills: match.matched_skills || []
-        };
-      });
-      
-      setMatchScores(scoreMap);
-      
-      // 按照匹配度排序：优先匹配标签数量，其次匹配分数
-      const sortedJobs = [...jobs].sort((a, b) => {
-        const scoreA = scoreMap[a.id] || 0;
-        const scoreB = scoreMap[b.id] || 0;
-        const matchCountA = matchDetailsMap[a.id]?.match_count || 0;
-        const matchCountB = matchDetailsMap[b.id]?.match_count || 0;
-        
-        // 优先按匹配标签数量排序（降序）
-        if (matchCountA !== matchCountB) {
-          return matchCountB - matchCountA;
-        }
-        // 其次按匹配分数排序（降序）
-        return scoreB - scoreA;
-      });
-      
-      setJobs(sortedJobs);
-      
-      // 重新应用筛选和排序
-      applyFiltersAndSort(sortedJobs, scoreMap);
-    } catch (error) {
-      console.error('Error loading match scores:', error);
-    }
-  };
-  
-  const applyFiltersAndSort = (jobsToFilter: JobPosition[], scores: Record<string, number>) => {
-    let filtered = jobsToFilter;
+  const applyFiltersAndSort = useCallback((jobsToFilter: JobPosition[], scores: Record<string, number>) => {
+    let filtered = [...jobsToFilter];
 
     if (selectedKeywords.length > 0) {
       filtered = filtered.filter(job =>
@@ -149,7 +86,44 @@ export default function JobsPage({ onStartInterview }: JobsPageProps) {
     });
 
     setFilteredJobs(filtered);
-  };
+  }, [searchQuery, selectedKeywords]);
+
+  const loadMatchScores = useCallback(async () => {
+    if (!resumeId) return;
+
+    try {
+      const matches = await simulateJobMatching(resumeId);
+      const scoreMap: Record<string, number> = {};
+
+      matches.forEach(match => {
+        scoreMap[match.job_id] = match.match_score;
+      });
+
+      setMatchScores(scoreMap);
+    } catch (error) {
+      console.error('Error loading match scores:', error);
+    }
+  }, [resumeId]);
+
+  useEffect(() => {
+    // 从localStorage获取resume_id
+    const savedResumeId = localStorage.getItem('current_resume_id');
+    if (savedResumeId) {
+      setResumeId(savedResumeId);
+    }
+    loadJobs();
+  }, [loadJobs]);
+
+  useEffect(() => {
+    // 使用当前的matchScores进行排序
+    applyFiltersAndSort(jobs, matchScores);
+  }, [jobs, matchScores, applyFiltersAndSort]);
+
+  useEffect(() => {
+    if (resumeId && jobs.length > 0) {
+      loadMatchScores();
+    }
+  }, [resumeId, jobs.length, loadMatchScores]);
 
 
   const toggleKeyword = (keyword: string) => {
