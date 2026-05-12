@@ -33,7 +33,8 @@ A full-stack job search assistant that crawls postings from major tech companies
 ### Resume Parsing & Matching
 - Parse PDF/Word resumes intelligently
 - Extract and score skill tags
-- Calculate job-resume match percentage
+- Calculate job-resume match percentage with case-insensitive skill matching
+- Accept skill tags from multiple pipeline formats (`Python , 5 , AI`, `Python %> 5 , AI`, `Python: 5`)
 
 ### AI Mock Interview
 - Generate targeted interview questions from job descriptions
