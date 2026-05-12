@@ -15,6 +15,16 @@ from typing import Any, Dict, List, Tuple
 
 logging.basicConfig(level=logging.INFO)
 
+_SCORE_RE = re.compile(r"(?<!\d)([1-5])(?:\.0)?(?!\d)")
+
+
+def _normalize_skill_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name).strip().lower()
+
+
+def _clean_skill_name(name: str) -> str:
+    return name.strip().strip(" -:：()[]{}")
+
 
 class JobMatcher:
     """岗位匹配器"""
@@ -25,35 +35,43 @@ class JobMatcher:
     def parse_job_skills(self, skill_tags_raw: str) -> List[Tuple[str, int]]:
         """
         解析岗位技能标签字符串
-        格式: "技能名 , 分数 , AI | 技能名 , 分数 , AI"
+        支持格式: "技能名 , 分数 , AI" / "技能名 %> 分数 , AI" / "技能名: 分数"
         返回: [(技能名, 分数), ...]
         """
-        if not skill_tags_raw or skill_tags_raw == 'nan':
+        if not skill_tags_raw or str(skill_tags_raw).lower() == 'nan':
             return []
-        
-        skills = []
-        parts = skill_tags_raw.split('|')
-        
+
+        skills_by_key: Dict[str, Tuple[str, int]] = {}
+        parts = str(skill_tags_raw).split('|')
+
         for part in parts:
             part = part.strip()
             if not part:
                 continue
-            
-            # 解析格式: "技能名 , 分数 , AI"
-            segments = [s.strip() for s in part.split(',')]
-            if len(segments) >= 2:
-                skill_name = segments[0]
-                try:
-                    score = int(segments[1])
-                    if skill_name:
-                        skills.append((skill_name, score))
-                except ValueError:
-                    # 如果分数不是数字，默认给3分
-                    if skill_name:
-                        skills.append((skill_name, 3))
-        
-        return skills
-    
+
+            score_match = _SCORE_RE.search(part)
+            score = int(score_match.group(1)) if score_match else 3
+
+            if "%>" in part:
+                skill_name = part.split("%>", 1)[0]
+            elif score_match:
+                skill_name = part[:score_match.start()]
+                skill_name = skill_name.rsplit(",", 1)[0]
+                skill_name = skill_name.rsplit("，", 1)[0]
+            else:
+                skill_name = part.split(",", 1)[0].split("，", 1)[0]
+
+            skill_name = _clean_skill_name(skill_name)
+            if not skill_name:
+                continue
+
+            key = _normalize_skill_name(skill_name)
+            existing = skills_by_key.get(key)
+            if existing is None or score > existing[1]:
+                skills_by_key[key] = (skill_name, score)
+
+        return list(skills_by_key.values())
+
     def match_jobs(
         self,
         resume_skills: List[Dict[str, Any]],
@@ -68,10 +86,12 @@ class JobMatcher:
             匹配结果列表，按匹配度排序
         """
         # 构建简历技能字典（技能名 -> 分数）
-        resume_skill_dict = {
-            skill['skill_name']: skill['score']
-            for skill in resume_skills
-        }
+        resume_skill_dict = {}
+        for skill in resume_skills:
+            name = str(skill.get('skill_name', '')).strip()
+            if not name:
+                continue
+            resume_skill_dict[_normalize_skill_name(name)] = int(skill.get('score', 0) or 0)
         
         matches = []
         
@@ -121,8 +141,9 @@ class JobMatcher:
         
         for job_skill_name, job_score in job_skills:
             # 精确匹配
-            if job_skill_name in resume_skills:
-                resume_score = resume_skills[job_skill_name]
+            normalized_job_skill = _normalize_skill_name(job_skill_name)
+            if normalized_job_skill in resume_skills:
+                resume_score = resume_skills[normalized_job_skill]
                 matched_skills.append({
                     'skill_name': job_skill_name,
                     'resume_score': resume_score,
@@ -135,8 +156,8 @@ class JobMatcher:
                 # 模糊匹配（包含关系）
                 matched = False
                 for resume_skill_name, resume_score in resume_skills.items():
-                    if (job_skill_name.lower() in resume_skill_name.lower() or
-                        resume_skill_name.lower() in job_skill_name.lower()):
+                    if (normalized_job_skill in resume_skill_name or
+                        resume_skill_name in normalized_job_skill):
                         matched_skills.append({
                             'skill_name': job_skill_name,
                             'resume_skill_name': resume_skill_name,
