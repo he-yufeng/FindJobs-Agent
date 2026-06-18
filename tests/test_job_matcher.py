@@ -41,3 +41,21 @@ def test_match_jobs_falls_back_to_required_skills():
     )
 
     assert matches[0]["matched_skills"] == ["React"]
+
+
+def test_match_jobs_reports_missing_skills_gap():
+    matcher = JobMatcher()
+    resume_skills = [{"skill_name": "Python", "score": 5}]
+    jobs = [
+        {
+            "id": "backend",
+            "skill_tags_raw": "Python , 5 , AI | Kubernetes , 4 , AI | Go , 3 , AI",
+            "required_skills": [],
+        }
+    ]
+
+    matches = matcher.match_jobs(resume_skills, jobs)
+
+    assert matches[0]["matched_skills"] == ["Python"]
+    # the job wants Kubernetes and Go, which the resume lacks -> surfaced as a gap
+    assert matches[0]["missing_skills"] == ["Kubernetes", "Go"]

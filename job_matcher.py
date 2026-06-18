@@ -113,6 +113,7 @@ class JobMatcher:
                 'job': job,
                 'match_score': match_result['match_score'],
                 'matched_skills': match_result['matched_skills'],
+                'missing_skills': match_result['missing_skills'],
                 'match_details': match_result['details']
             })
         
@@ -136,9 +137,10 @@ class JobMatcher:
         2. 其次匹配分数高低（分数越高越好）
         """
         matched_skills = []
+        missing_skills: List[str] = []
         total_score = 0
         match_count = 0
-        
+
         for job_skill_name, job_score in job_skills:
             # 精确匹配
             normalized_job_skill = _normalize_skill_name(job_skill_name)
@@ -169,7 +171,10 @@ class JobMatcher:
                         match_count += 1
                         matched = True
                         break
-        
+                if not matched:
+                    # 岗位要求但简历里没有的技能，作为技能差距反馈给求职者
+                    missing_skills.append(job_skill_name)
+
         # 计算匹配分数（0-100）
         if not job_skills:
             match_score = 0
@@ -187,6 +192,7 @@ class JobMatcher:
         return {
             'match_score': match_score,
             'matched_skills': [m['skill_name'] for m in matched_skills],
+            'missing_skills': missing_skills,
             'details': {
                 'match_count': match_count,
                 'total_job_skills': len(job_skills),
