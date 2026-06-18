@@ -59,3 +59,29 @@ def test_match_jobs_reports_missing_skills_gap():
     assert matches[0]["matched_skills"] == ["Python"]
     # the job wants Kubernetes and Go, which the resume lacks -> surfaced as a gap
     assert matches[0]["missing_skills"] == ["Kubernetes", "Go"]
+
+
+def test_top_skill_gaps_aggregates_and_ranks_missing_skills():
+    matcher = JobMatcher()
+    resume_skills = [{"skill_name": "Python", "score": 5}]
+    jobs = [
+        {"id": "a", "skill_tags_raw": "Python , 5 , AI | Kubernetes , 4 , AI | Go , 3 , AI"},
+        {"id": "b", "skill_tags_raw": "Python , 5 , AI | Kubernetes , 4 , AI"},
+        {"id": "c", "skill_tags_raw": "Python , 5 , AI | Docker , 4 , AI"},
+    ]
+
+    gaps = matcher.top_skill_gaps(matcher.match_jobs(resume_skills, jobs))
+
+    # Kubernetes is missing in two jobs, so it is the top gap to close first;
+    # Docker and Go each appear once and tie-break by (normalized) name.
+    assert gaps[0] == {"skill": "Kubernetes", "job_count": 2}
+    assert [g["skill"] for g in gaps] == ["Kubernetes", "Docker", "Go"]
+
+
+def test_top_skill_gaps_respects_limit():
+    matcher = JobMatcher()
+    jobs = [{"id": "a", "skill_tags_raw": "Kubernetes , 4 , AI | Go , 3 , AI | Docker , 3 , AI"}]
+
+    gaps = matcher.top_skill_gaps(matcher.match_jobs([], jobs), limit=2)
+
+    assert len(gaps) == 2

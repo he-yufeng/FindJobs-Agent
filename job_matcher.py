@@ -122,9 +122,44 @@ class JobMatcher:
             -len(x['matched_skills']),  # 匹配标签数量（降序）
             -x['match_score']  # 匹配分数（降序）
         ))
-        
+
         return matches
-    
+
+    def top_skill_gaps(
+        self,
+        matches: List[Dict[str, Any]],
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        汇总所有匹配岗位的技能缺口，找出最该优先补齐的技能。
+        遍历 match_jobs 的结果，统计每个缺口技能在多少个岗位里出现；
+        出现得越多，说明越是当前匹配岗位的硬通货、最该先学。
+        参数:
+            matches: match_jobs 的返回结果
+            limit: 返回前 N 个最高频的缺口技能
+        返回:
+            [{"skill": 技能名, "job_count": 出现岗位数}, ...]，
+            按 job_count 降序、技能名升序排列
+        """
+        counts: Dict[str, int] = {}
+        display: Dict[str, str] = {}
+        for match in matches:
+            # 同一岗位内按归一化名去重，避免重复技能名被多算
+            seen = set()
+            for skill in match.get('missing_skills', []):
+                key = _normalize_skill_name(str(skill))
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                counts[key] = counts.get(key, 0) + 1
+                display.setdefault(key, _clean_skill_name(str(skill)))
+
+        ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return [
+            {'skill': display[key], 'job_count': count}
+            for key, count in ranked[:limit]
+        ]
+
     def _calculate_match(
         self,
         resume_skills: Dict[str, int],
