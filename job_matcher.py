@@ -15,7 +15,10 @@ from typing import Any, Dict, List, Tuple
 
 logging.basicConfig(level=logging.INFO)
 
-_SCORE_RE = re.compile(r"(?<!\d)([1-5])(?:\.0)?(?!\d)")
+# Match a standalone 1-5 score, not a digit embedded in a skill name (Vue3,
+# Angular2, Python3): bound the digit by non-word characters so a version
+# number in the skill name isn't mistaken for the score.
+_SCORE_RE = re.compile(r"(?<!\w)([1-5])(?:\.0)?(?!\w)")
 
 
 def _normalize_skill_name(name: str) -> str:
