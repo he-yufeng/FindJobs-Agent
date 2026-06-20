@@ -11,6 +11,14 @@ def test_parse_job_skills_accepts_pipeline_formats():
     assert parsed == [("Python", 5), ("Machine Learning", 4), ("SQL", 3)]
 
 
+def test_parse_job_skills_keeps_version_numbers_in_skill_names():
+    matcher = JobMatcher()
+    # A 1-5 digit inside a skill name (Vue3, Angular2) must not be read as the
+    # score, nor truncate the name.
+    parsed = matcher.parse_job_skills("Vue3 , 4 , AI | Python3 %> 5 | Angular2 , 3")
+    assert parsed == [("Vue3", 4), ("Python3", 5), ("Angular2", 3)]
+
+
 def test_match_jobs_is_case_insensitive_and_keeps_sorting():
     matcher = JobMatcher()
     resume_skills = [
