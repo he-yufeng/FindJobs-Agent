@@ -93,3 +93,15 @@ def test_top_skill_gaps_respects_limit():
     gaps = matcher.top_skill_gaps(matcher.match_jobs([], jobs), limit=2)
 
     assert len(gaps) == 2
+
+
+def test_fuzzy_match_picks_highest_scoring_resume_skill_not_first():
+    # When a job skill fuzzy-matches several resume skills, the score must come
+    # from the best (highest-scoring) one, not whichever the dict yields first.
+    matcher = JobMatcher()
+    resume_skills = {"ml-basics": 2, "advanced-ml": 8}
+    result = matcher._calculate_match(resume_skills, [("ml", 4)])
+    detail = result["details"]["matched_skills_detail"]
+    assert len(detail) == 1
+    assert detail[0]["resume_skill_name"] == "advanced-ml"
+    assert detail[0]["resume_score"] == 8

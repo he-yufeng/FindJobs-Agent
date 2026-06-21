@@ -193,23 +193,27 @@ class JobMatcher:
                 total_score += resume_score
                 match_count += 1
             else:
-                # 模糊匹配（包含关系）
-                matched = False
+                # 模糊匹配（包含关系）：在所有命中里挑简历分最高的，
+                # 否则结果会取决于简历技能的字典顺序、同一份输入算出不同分。
+                best_name = None
+                best_score = None
                 for resume_skill_name, resume_score in resume_skills.items():
                     if (normalized_job_skill in resume_skill_name or
                         resume_skill_name in normalized_job_skill):
-                        matched_skills.append({
-                            'skill_name': job_skill_name,
-                            'resume_skill_name': resume_skill_name,
-                            'resume_score': resume_score,
-                            'job_score': job_score,
-                            'match_type': 'fuzzy'
-                        })
-                        total_score += resume_score
-                        match_count += 1
-                        matched = True
-                        break
-                if not matched:
+                        if best_score is None or resume_score > best_score:
+                            best_name = resume_skill_name
+                            best_score = resume_score
+                if best_score is not None:
+                    matched_skills.append({
+                        'skill_name': job_skill_name,
+                        'resume_skill_name': best_name,
+                        'resume_score': best_score,
+                        'job_score': job_score,
+                        'match_type': 'fuzzy'
+                    })
+                    total_score += best_score
+                    match_count += 1
+                else:
                     # 岗位要求但简历里没有的技能，作为技能差距反馈给求职者
                     missing_skills.append(job_skill_name)
 
