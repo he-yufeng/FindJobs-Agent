@@ -180,7 +180,10 @@ GENERIC_SKILL_HINTS = {
     "技术": ["工程能力", "系统设计"],
 }
 
-_TAG_SCORE_RE = re.compile(r"([^:：\s]+?)\s*[:：]\s*([1-5])(?=\s|$)")
+# Allow spaces inside a tag so a multi-word skill like "Machine Learning" is
+# captured whole, but stop at a newline / comma so we don't run across the
+# boundary between two tags. The captured tag is .strip()-ed by the caller.
+_TAG_SCORE_RE = re.compile(r"([^:：\n,，]+?)\s*[:：]\s*([1-5])(?=\s|$)")
 
 
 def parse_llm_response(reply: str, valid_tags: Set[str]) -> List[Tuple[str, int]]:
