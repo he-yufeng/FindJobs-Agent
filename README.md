@@ -170,6 +170,15 @@ AI mock interview system:
 | `/api/interview/start` | POST | Start mock interview |
 | `/api/interview/answer` | POST | Submit interview answer |
 
+## Roadmap
+
+Crawl, analyze, resume match, and mock interview work end to end. The next steps widen the funnel and follow the hunt past the match:
+
+- **More job sources** — extend the crawler beyond the current company set to job boards and aggregators, so matching isn't limited to a fixed list.
+- **Incremental crawls** — track which postings were already seen and fetch only new ones, instead of re-crawling and re-analyzing the full set each run.
+- **Application tracking** — a simple board for where each application stands (applied / replied / interview), so the tool follows the job hunt past the match step.
+- **Voice mock interviews** — speech in and out for the AI interviewer, closer to a real screen than a text chat.
+
 ## Contributing
 
 Issues and pull requests are welcome!
