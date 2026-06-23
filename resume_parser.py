@@ -14,12 +14,10 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 import pandas as pd
 import PyPDF2
-import requests
-import time
 
 try:
     from tag_rate import (

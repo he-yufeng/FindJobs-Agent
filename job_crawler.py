@@ -10,10 +10,9 @@ import time
 import random
 import logging
 import argparse
-import re
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from abc import ABC, abstractmethod
 
 import requests
@@ -1141,7 +1140,7 @@ class AppleCrawler(JobCrawlerBase):
         page = 1
         
         while True:
-            url = f"https://jobs.apple.com/api/role/search"
+            url = "https://jobs.apple.com/api/role/search"
             params = {
                 'location': 'china-CHNC',
                 'page': page,

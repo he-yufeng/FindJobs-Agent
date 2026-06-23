@@ -139,7 +139,7 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None) -> Dict[str, Any]:
         '--max-workers', '5',  # 控制并发，避免API限流
     ]
     
-    logger.info(f"运行智能分析: job_agent.py")
+    logger.info("运行智能分析: job_agent.py")
     logger.info(f"输入文件: {input_file}")
     logger.info(f"输出文件: {output_file}")
     logger.info("")
@@ -161,7 +161,7 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None) -> Dict[str, Any]:
             # 统计有技能标签的岗位
             has_skills = df['skill_tags'].notna().sum()
             
-            logger.info(f"✅ 智能分析完成")
+            logger.info("✅ 智能分析完成")
             logger.info(f"   - 总岗位数: {len(df)}")
             logger.info(f"   - 有技能标签: {has_skills}")
             
@@ -249,7 +249,7 @@ def step3_prepare_for_website() -> Dict[str, Any]:
         company = job['company_name']
         companies[company] = companies.get(company, 0) + 1
     
-    logger.info(f"\n📊 按公司统计:")
+    logger.info("\n📊 按公司统计:")
     for company, count in sorted(companies.items(), key=lambda x: -x[1]):
         has_skills = sum(1 for j in jobs if j['company_name'] == company and j.get('skill_tags'))
         logger.info(f"   {company:15}: {count:5} 个 (含技能标签: {has_skills})")
