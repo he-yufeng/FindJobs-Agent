@@ -5,6 +5,8 @@
 **基于大语言模型的智能求职平台 — 从岗位爬取到模拟面试，一站搞定。**
 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
+[![Flask](https://img.shields.io/badge/Backend-Flask-000000.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/he-yufeng/FindJobs-Agent?style=social)](https://github.com/he-yufeng/FindJobs-Agent)
 
@@ -17,6 +19,10 @@
 ## 简介
 
 一个集成了岗位数据爬取、LLM 智能分析、简历解析和 AI 模拟面试的全栈求职辅助系统。
+
+## 工作流程
+
+![FindJobs-Agent 架构](docs/architecture.png)
 
 ## 核心功能
 

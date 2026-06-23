@@ -5,6 +5,8 @@
 **LLM-powered job hunting toolkit — from crawling to interview prep, all in one place.**
 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
+[![Flask](https://img.shields.io/badge/Backend-Flask-000000.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/he-yufeng/FindJobs-Agent?style=social)](https://github.com/he-yufeng/FindJobs-Agent)
 
@@ -17,6 +19,10 @@
 ## What is FindJobs-Agent?
 
 A full-stack job search assistant that crawls postings from major tech companies, analyzes them with LLMs, parses your resume, and runs AI mock interviews — so you can focus on preparing, not sifting through job boards.
+
+## How It Works
+
+![FindJobs-Agent architecture](docs/architecture.png)
 
 ## Features
 
