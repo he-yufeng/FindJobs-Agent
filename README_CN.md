@@ -1,8 +1,6 @@
 <div align="center">
 
-# FindJobs-Agent
-
-**基于大语言模型的智能求职平台 — 从岗位爬取到模拟面试，一站搞定。**
+<img src="docs/banner.png" alt="FindJobs-Agent" width="100%">
 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
@@ -10,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/he-yufeng/FindJobs-Agent?style=social)](https://github.com/he-yufeng/FindJobs-Agent)
 
-**[English](README.md) | [中文](README_CN.md)**
+**[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [工作流程](#工作流程) · [核心功能](#核心功能)
 
 </div>
 
