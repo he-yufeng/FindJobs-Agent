@@ -9,6 +9,11 @@ from typing import Optional, Tuple
 
 TEMPERATURE_UNSUPPORTED_MODELS = {"gpt-5-mini"}
 
+# OpenAI reasoning models (the o1 / o3 / o4 families and their -mini / -preview
+# variants) reject the temperature parameter and only accept the default, so
+# they need the same prompt-side emulation as the models listed above.
+_TEMPERATURE_UNSUPPORTED_PREFIXES = ("o1", "o3", "o4")
+
 
 def _normalize_model_name(model: Optional[str]) -> str:
     return (model or "").strip().lower()
@@ -16,7 +21,15 @@ def _normalize_model_name(model: Optional[str]) -> str:
 
 def supports_temperature(model: Optional[str]) -> bool:
     """Return True if the model accepts the temperature parameter."""
-    return _normalize_model_name(model) not in TEMPERATURE_UNSUPPORTED_MODELS
+    name = _normalize_model_name(model)
+    if name in TEMPERATURE_UNSUPPORTED_MODELS:
+        return False
+    # Drop a vendor prefix like "openai/o1-mini" before checking the family.
+    bare = name.split("/")[-1]
+    return not any(
+        bare == prefix or bare.startswith(f"{prefix}-")
+        for prefix in _TEMPERATURE_UNSUPPORTED_PREFIXES
+    )
 
 
 def _temperature_guideline(desired_temperature: float) -> str:
