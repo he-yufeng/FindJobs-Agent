@@ -3,7 +3,7 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
@@ -212,7 +212,7 @@ def process_single_group(args: Tuple) -> Dict:
     # 整理当前分组的原始标签
     original_tags = sorted({t.strip() for ts in group['tags'] for t in str(ts).split('|_|') if t.strip()})
     if not original_tags:
-        print(f"  [INFO] 该分组无有效原始标签，跳过。")
+        print("  [INFO] 该分组无有效原始标签，跳过。")
         return None
     
     # 获取对应的工作描述
@@ -235,7 +235,7 @@ def process_single_group(args: Tuple) -> Dict:
     response_text = call_llm(prompt, api_key)
 
     if not response_text:
-        print(f"  [ERROR] LLM 无有效返回，跳过此分组。")
+        print("  [ERROR] LLM 无有效返回，跳过此分组。")
         return None
     
     print(f"  [DEBUG] LLM 原始返回: {response_text[:200]}...")
@@ -245,7 +245,7 @@ def process_single_group(args: Tuple) -> Dict:
     add_tags = parsed_json.get('add', [])
 
     if not isinstance(add_tags, list):
-        print(f"  [ERROR] JSON 'add' 字段非列表格式，跳过。")
+        print("  [ERROR] JSON 'add' 字段非列表格式，跳过。")
         add_tags = []
 
     # 清理和去重

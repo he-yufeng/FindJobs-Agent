@@ -7,13 +7,10 @@ import json
 import logging
 import os
 import random
-import sys
 import time
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 from openai import OpenAI

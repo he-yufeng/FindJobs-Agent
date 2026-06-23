@@ -6,7 +6,7 @@ import time
 import argparse
 import logging
 from pathlib import Path
-from typing import List, Dict, Set, Tuple, Optional, NamedTuple
+from typing import List, Dict, Set, Tuple, NamedTuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 

@@ -11,11 +11,9 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 import re
-import requests
 
 try:
     from tag_rate import APIKeyManager, load_api_keys

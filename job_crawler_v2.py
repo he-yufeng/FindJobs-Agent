@@ -12,7 +12,7 @@ import logging
 import argparse
 import hashlib
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from abc import ABC, abstractmethod
 
 import requests
@@ -868,7 +868,7 @@ class ByteDanceCrawler(JobCrawlerBase):
                     return self.jobs
                 except:
                     pass
-        logger.warning(f"  └─ 未找到数据文件")
+        logger.warning("  └─ 未找到数据文件")
         return []
 
 
@@ -1381,7 +1381,7 @@ class ByteDanceAPICrawler(JobCrawlerBase):
                     return self.jobs
                 except:
                     pass
-        logger.warning(f"  └─ 0 个")
+        logger.warning("  └─ 0 个")
         return []
 
 
@@ -1648,7 +1648,7 @@ def run_crawlers(companies: List[str], output_file: str, max_jobs: int = MAX_JOB
     logger.info(f"📁 保存到: {output_file}")
     
     if stats:
-        logger.info(f"\n📊 统计:")
+        logger.info("\n📊 统计:")
         for company, count in sorted(stats.items(), key=lambda x: -x[1]):
             logger.info(f"  {company:12}: {count:4} 个")
     
@@ -1667,7 +1667,7 @@ def main():
         print("\n支持的公司:")
         for k, v in NAMES.items():
             print(f"  {k:12} -> {v}")
-        print(f"\n使用: python job_crawler_v2.py -c tencent netease amazon")
+        print("\n使用: python job_crawler_v2.py -c tencent netease amazon")
         return
     
     companies = args.companies or list(CRAWLERS.keys())
