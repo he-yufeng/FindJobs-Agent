@@ -95,6 +95,28 @@ def test_top_skill_gaps_respects_limit():
     assert len(gaps) == 2
 
 
+def test_single_letter_skill_does_not_fuzzy_match_inside_a_word():
+    # A one-letter job skill like "R" (the R language) must not fuzzy-match
+    # every resume skill that merely contains that letter ("React"), or the
+    # candidate looks qualified for a skill they don't have. It surfaces as a
+    # gap unless the resume lists "R" exactly.
+    matcher = JobMatcher()
+    result = matcher._calculate_match({"react": 4, "scala": 3}, [("R", 3)])
+    assert result["matched_skills"] == []
+    assert result["missing_skills"] == ["R"]
+
+    # Exact single-letter matches still work.
+    exact = matcher._calculate_match({"r": 5}, [("R", 3)])
+    assert exact["matched_skills"] == ["R"]
+
+
+def test_two_letter_skill_still_fuzzy_matches_as_before():
+    # The >= 2 char guard must not regress real two-letter fuzzy matches.
+    matcher = JobMatcher()
+    result = matcher._calculate_match({"advanced-ml": 8}, [("ml", 4)])
+    assert result["matched_skills"] == ["ml"]
+
+
 def test_fuzzy_match_picks_highest_scoring_resume_skill_not_first():
     # When a job skill fuzzy-matches several resume skills, the score must come
     # from the best (highest-scoring) one, not whichever the dict yields first.

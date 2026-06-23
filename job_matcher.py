@@ -198,6 +198,14 @@ class JobMatcher:
                 best_name = None
                 best_score = None
                 for resume_skill_name, resume_score in resume_skills.items():
+                    # Substring fuzzy match, but skip it when the shorter name is
+                    # a single character: a one-letter skill like "R" or "C"
+                    # otherwise matches inside any word containing that letter
+                    # ("R" in "React", "C" in "Scala"), a false positive. Those
+                    # rely on exact match instead; "ml", "python3" etc. (>= 2
+                    # chars) still fuzzy-match as before.
+                    if min(len(normalized_job_skill), len(resume_skill_name)) < 2:
+                        continue
                     if (normalized_job_skill in resume_skill_name or
                         resume_skill_name in normalized_job_skill):
                         if best_score is None or resume_score > best_score:
