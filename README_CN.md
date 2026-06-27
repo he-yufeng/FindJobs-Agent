@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/he-yufeng/FindJobs-Agent?style=social)](https://github.com/he-yufeng/FindJobs-Agent)
 
-**[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [工作流程](#工作流程) · [核心功能](#核心功能)
+**[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [快速开始](#快速开始) · [工作流程](#工作流程) · [核心功能](#核心功能)
 
 </div>
 
@@ -178,6 +178,16 @@ AI 模拟面试系统：
 - **增量爬取**：记录已经见过的岗位，只抓新发布的，而不是每次重爬、重分析全量。
 - **投递进度跟踪**：一个简单看板记录每份投递的状态（已投 / 已回 / 面试），让工具一直跟到匹配之后。
 - **语音模拟面试**：给 AI 面试官加上语音输入输出，比纯文字聊天更接近真实面试。
+
+## 相关项目
+
+FindJobs-Agent 是我做的应用级 agent 之一，下面几个也许对你有用：
+
+- **[CoreCoder](https://github.com/he-yufeng/CoreCoder)** — 想搞懂一个 coding agent 到底怎么运作？把整套约 1000 行引擎从头读到尾，而不是当黑箱。
+- **[RepoWiki](https://github.com/he-yufeng/RepoWiki)** — 被丢进一个陌生代码库？它给你一份带「从哪读起」路径的 wiki，一个可自托管的 DeepWiki 替代。
+- **[ContractGuard](https://github.com/he-yufeng/ContractGuard)** — 签字前先把有风险的条款挑出来：它读合同、标出危险点。
+- **[GitSense](https://github.com/he-yufeng/GitSense)** — 想给开源做贡献？它帮你找到值得做的 issue，还能估你的 PR 多大概率被合。
+- **[CodeABC](https://github.com/he-yufeng/CodeABC)** — 不会写代码也能看懂一个项目，专给小白做的。
 
 ## 贡献
 

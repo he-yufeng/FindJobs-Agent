@@ -179,6 +179,16 @@ Crawl, analyze, resume match, and mock interview work end to end. The next steps
 - **Application tracking** — a simple board for where each application stands (applied / replied / interview), so the tool follows the job hunt past the match step.
 - **Voice mock interviews** — speech in and out for the AI interviewer, closer to a real screen than a text chat.
 
+## Related Projects
+
+FindJobs-Agent is one of the applied agents I've built. A few others you might find useful:
+
+- **[CoreCoder](https://github.com/he-yufeng/CoreCoder)** — want to understand how a coding agent really works? Read the whole ~1k-line engine end to end, not a black box.
+- **[RepoWiki](https://github.com/he-yufeng/RepoWiki)** — dropped into an unfamiliar codebase? It gives you a guided wiki and a where-to-start reading path, a self-hostable DeepWiki alternative.
+- **[ContractGuard](https://github.com/he-yufeng/ContractGuard)** — catch the risky clauses before you sign: it reads contracts and flags the dangerous bits.
+- **[GitSense](https://github.com/he-yufeng/GitSense)** — want to contribute to open source? It finds issues worth your time and gauges whether your PR will get merged.
+- **[CodeABC](https://github.com/he-yufeng/CodeABC)** — understand any codebase even if you don't code, built for non-programmers.
+
 ## Contributing
 
 Issues and pull requests are welcome!
