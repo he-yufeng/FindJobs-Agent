@@ -20,6 +20,8 @@ A full-stack job search assistant that crawls postings from major tech companies
 
 ## How It Works
 
+Four pieces wired into one flow: a crawler pulls postings from company career sites, an LLM reads each one for requirements and skills, your resume gets parsed and scored against them, and any posting can drive an AI mock interview straight off its job description. The React frontend ties it together, so you go from "what's out there" to "let me practice for this one" without leaving the app.
+
 ![FindJobs-Agent architecture](docs/architecture.png)
 
 ## Features
