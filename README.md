@@ -3,8 +3,6 @@
 <img src="docs/banner.png" alt="FindJobs-Agent" width="100%">
 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
-[![Flask](https://img.shields.io/badge/Backend-Flask-000000.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
@@ -13,8 +11,6 @@
 </div>
 
 ---
-
-**LLM-powered job hunting — from crawling to interview prep, all in one place.**
 
 ## What is FindJobs-Agent?
 
@@ -28,26 +24,10 @@ Four pieces wired into one flow: a crawler pulls postings from company career si
 
 ## Features
 
-### Job Crawler
-- Crawl job postings from Tencent, NetEase, ByteDance, Amazon, and more
-- Dual mode: API crawling + Selenium browser automation
-- Automatic data cleaning and format normalization
-
-### LLM Job Analysis
-- Extract education and major requirements automatically
-- Skill tag recognition with importance scoring (1-5)
-- Job taxonomy classification (primary/secondary categories)
-
-### Resume Parsing & Matching
-- Parse PDF/Word resumes intelligently
-- Extract and score skill tags
-- Calculate job-resume match percentage with case-insensitive skill matching
-- Accept skill tags from multiple pipeline formats (`Python , 5 , AI`, `Python %> 5 , AI`, `Python: 5`)
-
-### AI Mock Interview
-- Generate targeted interview questions from job descriptions
-- Multi-turn conversational interview simulation
-- Real-time feedback and suggestions
+- **Job crawler** — pulls postings from Tencent, NetEase, ByteDance, Amazon and more, via API or Selenium, with automatic cleaning and normalization.
+- **LLM analysis** — extracts education/major requirements, scores skill tags (1–5), and classifies each posting into a job taxonomy.
+- **Resume parsing & matching** — parses PDF/Word resumes, scores skills, and computes a case-insensitive job-resume match percentage.
+- **AI mock interview** — generates questions from any job description and runs a multi-turn interview with real-time feedback.
 
 ## Project Structure
 
@@ -116,52 +96,13 @@ Visit http://localhost:8080 in your browser.
 
 ## Data Pipeline
 
-The processing flow goes through four stages:
-
-1. **Crawl** (`job_crawler_v2.py`) — Fetch job postings from company career sites
-2. **Analyze** (`job_agent.py`) — LLM extracts requirements, skills, and classifications
-3. **Score** (`tag_rate.py`) — Match and score skill tags against the taxonomy
-4. **Serve** (`api_server.py`) — Expose results via REST API for the frontend
-
-### Run the full pipeline
-```bash
-# Crawl + analyze + generate website data
-python pipeline.py
-
-# Crawl only
-python job_crawler_v2.py -c tencent netease amazon -m 300
-
-# Analyze only (for testing)
-python pipeline.py --analyze-only --max-jobs 50
-```
-
-## Key Modules
-
-### job_crawler_v2.py
-Multi-company job crawler supporting:
-- Tencent, NetEase, ByteDance, Amazon (stable, API-based)
-- Alibaba, Meituan, JD, etc. (Selenium mode)
+`pipeline.py` chains crawl → analyze → score → serve. Run the whole thing, or a single stage:
 
 ```bash
-# Crawl specific companies
-python job_crawler_v2.py -c tencent netease -m 500
-
-# List supported companies
-python job_crawler_v2.py --list
+python pipeline.py                                          # crawl + analyze + build site data
+python job_crawler_v2.py -c tencent netease amazon -m 300   # crawl only (--list shows companies)
+python pipeline.py --analyze-only --max-jobs 50             # analyze only (for testing)
 ```
-
-### job_agent.py
-LLM-driven job analysis agent:
-- Education requirement extraction (Bachelor's/Master's/PhD)
-- Major requirement identification
-- Skill tag matching and scoring
-- Job classification
-
-### interview_agent.py
-AI mock interview system:
-- Generates interview questions from job descriptions
-- Multi-turn conversational interaction
-- Answer evaluation and feedback
 
 ## API Endpoints
 
