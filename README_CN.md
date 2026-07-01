@@ -6,13 +6,15 @@
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
 [![Flask](https://img.shields.io/badge/Backend-Flask-000000.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/he-yufeng/FindJobs-Agent?style=social)](https://github.com/he-yufeng/FindJobs-Agent)
+[![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
 **[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [快速开始](#快速开始) · [工作流程](#工作流程) · [核心功能](#核心功能)
 
 </div>
 
 ---
+
+**用 LLM 找工作：从爬取岗位到模拟面试，一站式搞定。**
 
 ## 简介
 
@@ -64,7 +66,7 @@ FindJobs-Agent/
 ├── job_agent.py             # LLM 岗位分析 Agent
 ├── pipeline.py              # 数据处理流水线
 ├── api_server.py            # Flask API 服务
-├── AI_interviewer.py        # AI 面试模块
+├── interview_agent.py       # AI 面试模块
 ├── resume_parser.py         # 简历解析
 ├── tag_rate.py              # 技能评分
 ├── llm_client.py            # LLM 客户端
@@ -155,7 +157,7 @@ LLM 驱动的岗位分析 Agent：
 - 技能标签匹配与评分
 - 岗位分类
 
-### AI_interviewer.py
+### interview_agent.py
 AI 模拟面试系统：
 - 根据 JD 生成面试问题
 - 多轮对话交互
