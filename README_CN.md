@@ -3,8 +3,6 @@
 <img src="docs/banner.png" alt="FindJobs-Agent" width="100%">
 
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
-[![Flask](https://img.shields.io/badge/Backend-Flask-000000.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
@@ -13,8 +11,6 @@
 </div>
 
 ---
-
-**用 LLM 找工作：从爬取岗位到模拟面试，一站式搞定。**
 
 ## 简介
 
@@ -28,26 +24,10 @@
 
 ## 核心功能
 
-### 智能岗位爬虫
-- 支持多家大厂招聘数据爬取（腾讯、网易、字节跳动、Amazon 等）
-- API 爬取 + Selenium 浏览器自动化双模式
-- 自动数据清洗和格式标准化
-
-### LLM 智能分析
-- 自动提取岗位学历要求、专业要求
-- 技能标签识别与重要性评分（1-5 分）
-- 岗位族谱分类（一级/二级分类）
-
-### 简历解析与匹配
-- PDF/Word 简历智能解析
-- 技能标签提取与评分
-- 岗位-简历匹配度计算，技能名匹配不区分大小写
-- 兼容多种流水线技能标签格式（`Python , 5 , AI`、`Python %> 5 , AI`、`Python: 5`）
-
-### AI 模拟面试
-- 基于岗位 JD 生成针对性面试问题
-- 多轮对话式面试模拟
-- 实时反馈与建议
+- **智能岗位爬虫** — 从腾讯、网易、字节跳动、Amazon 等抓取岗位，支持 API 与 Selenium 双模式，自动清洗和标准化。
+- **LLM 智能分析** — 自动提取学历/专业要求，给技能标签打重要性分（1-5），并按岗位族谱分类。
+- **简历解析与匹配** — 解析 PDF/Word 简历、给技能打分，算出不区分大小写的岗位-简历匹配度。
+- **AI 模拟面试** — 基于任意岗位 JD 生成针对性问题，多轮对话面试并实时反馈。
 
 ## 项目结构
 
@@ -116,52 +96,13 @@ npm run dev
 
 ## 数据处理流程
 
-处理流水线分为四个阶段：
-
-1. **爬取** (`job_crawler_v2.py`) — 从各公司招聘网站抓取岗位信息
-2. **分析** (`job_agent.py`) — LLM 提取岗位要求、技能标签和分类
-3. **评分** (`tag_rate.py`) — 技能标签匹配与重要性打分
-4. **展示** (`api_server.py`) — REST API 提供数据给前端展示
-
-### 一键运行数据流水线
-```bash
-# 爬取 + 分析 + 生成网站数据
-python pipeline.py
-
-# 仅爬取
-python job_crawler_v2.py -c tencent netease amazon -m 300
-
-# 仅分析（测试）
-python pipeline.py --analyze-only --max-jobs 50
-```
-
-## 主要模块说明
-
-### job_crawler_v2.py
-多公司岗位爬虫，支持：
-- 腾讯、网易、字节跳动、Amazon（稳定，API 模式）
-- 阿里、美团、京东等（Selenium 模式）
+`pipeline.py` 把爬取 → 分析 → 评分 → 展示串成一条链路。可以整条跑，也可以只跑某一步：
 
 ```bash
-# 爬取指定公司
-python job_crawler_v2.py -c tencent netease -m 500
-
-# 列出支持的公司
-python job_crawler_v2.py --list
+python pipeline.py                                          # 爬取 + 分析 + 生成网站数据
+python job_crawler_v2.py -c tencent netease amazon -m 300   # 仅爬取（--list 查看支持的公司）
+python pipeline.py --analyze-only --max-jobs 50             # 仅分析（测试）
 ```
-
-### job_agent.py
-LLM 驱动的岗位分析 Agent：
-- 学历要求提取（本科/硕士/博士）
-- 专业要求识别
-- 技能标签匹配与评分
-- 岗位分类
-
-### interview_agent.py
-AI 模拟面试系统：
-- 根据 JD 生成面试问题
-- 多轮对话交互
-- 答案评估与反馈
 
 ## API 接口
 
