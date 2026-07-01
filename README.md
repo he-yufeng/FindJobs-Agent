@@ -6,13 +6,15 @@
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg?logo=react&logoColor=white)](https://react.dev/)
 [![Flask](https://img.shields.io/badge/Backend-Flask-000000.svg?logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/he-yufeng/FindJobs-Agent?style=social)](https://github.com/he-yufeng/FindJobs-Agent)
+[![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
 **[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [Quick Start](#quick-start) · [How It Works](#how-it-works) · [Features](#features)
 
 </div>
 
 ---
+
+**LLM-powered job hunting — from crawling to interview prep, all in one place.**
 
 ## What is FindJobs-Agent?
 
@@ -64,7 +66,7 @@ FindJobs-Agent/
 ├── job_agent.py             # LLM job analysis agent
 ├── pipeline.py              # Data processing pipeline
 ├── api_server.py            # Flask API server
-├── AI_interviewer.py        # AI interview module
+├── interview_agent.py       # AI interview module
 ├── resume_parser.py         # Resume parser
 ├── tag_rate.py              # Skill scoring
 ├── llm_client.py            # LLM client
@@ -155,7 +157,7 @@ LLM-driven job analysis agent:
 - Skill tag matching and scoring
 - Job classification
 
-### AI_interviewer.py
+### interview_agent.py
 AI mock interview system:
 - Generates interview questions from job descriptions
 - Multi-turn conversational interaction
