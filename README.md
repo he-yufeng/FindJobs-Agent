@@ -28,6 +28,7 @@ Four pieces wired into one flow: a crawler pulls postings from company career si
 - **LLM analysis** — extracts education/major requirements, scores skill tags (1–5), and classifies each posting into a job taxonomy.
 - **Resume parsing & matching** — parses PDF/Word resumes, scores skills, and computes a case-insensitive job-resume match percentage.
 - **AI mock interview** — generates questions from any job description and runs a multi-turn interview with real-time feedback.
+- **SQLite persistence** — analyzed postings are stored in a local `jobs.db`; existing CSV data is migrated automatically on first run, with CSV/JSON as fallback.
 
 ## Project Structure
 
@@ -46,6 +47,7 @@ FindJobs-Agent/
 ├── job_agent.py             # LLM job analysis agent
 ├── pipeline.py              # Data processing pipeline
 ├── api_server.py            # Flask API server
+├── storage.py               # SQLite job store (jobs.db)
 ├── interview_agent.py       # AI interview module
 ├── resume_parser.py         # Resume parser
 ├── tag_rate.py              # Skill scoring

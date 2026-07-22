@@ -38,6 +38,7 @@ test_crawl.json
 jobs_enriched*.csv
 jobs_enriched*.jsonl
 bytedance_jobs_enriched*.csv
+jobs.db
 
 # 原始岗位数据（太大）
 bytedance_jobs.json
