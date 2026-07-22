@@ -20,6 +20,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
+import storage
 from resume_parser import ResumeParser
 from job_matcher import JobMatcher
 from interview_agent import InterviewAgent
@@ -181,10 +182,46 @@ def get_jobs():
     try:
         jobs = []
         data_source = "none"
-        
-        # 优先级1: 流水线智能分析后的CSV（包含技能评分）
         enriched_csv = ROOT_DIR / 'jobs_enriched.csv'
-        if enriched_csv.exists():
+        db_path = ROOT_DIR / 'jobs.db'
+
+        # 优先级0: jobs.db（SQLite，流水线写入；首跑缺失时从分析 CSV 迁移）
+        if not db_path.exists() and enriched_csv.exists():
+            try:
+                imported = storage.import_csv(db_path, enriched_csv)
+                if imported:
+                    logging.info(f"已从 jobs_enriched.csv 迁移 {imported} 个岗位到 jobs.db")
+            except Exception as exc:
+                logging.warning(f"迁移 jobs_enriched.csv 到 jobs.db 失败，回退 CSV 路径: {exc}")
+        if storage.count_jobs(db_path) > 0:
+            for row in storage.load_jobs(db_path):
+                skill_tags_raw = str(row.get('skill_tags', ''))
+                job = {
+                    'id': str(row.get('job_id', uuid.uuid4())),
+                    'title': str(row.get('job_title', '')),
+                    'company': str(row.get('company_name', '')),
+                    'description': str(row.get('job_description', '')),
+                    'required_skills': parse_skill_tags(skill_tags_raw),
+                    'location': str(row.get('location', '')),
+                    'salary_range': '面议',
+                    'posted_date': '2024-01-01',
+                    'job_level1': str(row.get('job_level1', '')),
+                    'job_level2': str(row.get('job_level2', '')),
+                    'min_degree': str(row.get('min_degree', '')),
+                    'degree_priority': str(row.get('degree_priority', '')),
+                    'major_requirement': str(row.get('major_requirement_text', '')),
+                    'skill_tags_raw': skill_tags_raw,
+                    'apply_url': str(row.get('apply_url', '')),
+                    'source_url': str(row.get('source_url', '')),
+                    'category': str(row.get('category', '')),
+                    'requirements': str(row.get('job_requirements', '')),
+                }
+                jobs.append(job)
+            data_source = "sqlite"
+            logging.info(f"从 jobs.db 加载了 {len(jobs)} 个岗位")
+
+        # 优先级1: 流水线智能分析后的CSV（包含技能评分）
+        elif enriched_csv.exists():
             logging.info(f"从智能分析CSV加载岗位: {enriched_csv}")
             df = pd.read_csv(enriched_csv)
             

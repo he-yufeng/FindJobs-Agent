@@ -164,6 +164,16 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None) -> Dict[str, Any]:
             logger.info("✅ 智能分析完成")
             logger.info(f"   - 总岗位数: {len(df)}")
             logger.info(f"   - 有技能标签: {has_skills}")
+
+            # 同步进 SQLite（API 的一等读源；CSV 保留作导出）
+            try:
+                import storage
+                written = storage.upsert_jobs(
+                    ROOT_DIR / 'jobs.db', df.fillna("").to_dict("records")
+                )
+                logger.info(f"   - 已同步 {written} 个岗位到 jobs.db")
+            except Exception as exc:
+                logger.warning(f"   - 同步 jobs.db 失败（不影响 CSV 输出）: {exc}")
             
             return {
                 'success': True,
