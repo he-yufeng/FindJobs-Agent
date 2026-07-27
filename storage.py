@@ -5,11 +5,16 @@ live in a single SQLite file (``jobs.db``): the pipeline upserts into it after
 each enrichment run, and the API reads from it directly. The CSV stays as a
 human-readable export; on first run an existing ``jobs_enriched.csv`` is
 migrated into the DB automatically.
+
+The same file also backs the application board: each tracked job_id carries a
+status (bookmarked / applied / replied / interview / offer / rejected), a free
+note, and the last update time.
 """
 
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 JOB_COLUMNS = [
@@ -50,6 +55,24 @@ CREATE TABLE IF NOT EXISTS jobs (
 )
 """
 
+_APPLICATIONS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS applications (
+    job_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL
+)
+"""
+
+APPLICATION_STATUSES = (
+    "bookmarked",
+    "applied",
+    "replied",
+    "interview",
+    "offer",
+    "rejected",
+)
+
 _INSERT = (
     f"INSERT OR REPLACE INTO jobs ({', '.join(JOB_COLUMNS)}) "
     f"VALUES ({', '.join(['?'] * len(JOB_COLUMNS))})"
@@ -65,6 +88,7 @@ def _connect(db_path: str | Path) -> sqlite3.Connection:
 def init_db(db_path: str | Path) -> None:
     with _connect(db_path) as conn:
         conn.execute(_SCHEMA)
+        conn.execute(_APPLICATIONS_SCHEMA)
 
 
 def count_jobs(db_path: str | Path) -> int:
@@ -110,3 +134,39 @@ def import_csv(db_path: str | Path, csv_path: str | Path) -> int:
     df = pd.read_csv(csv_path).fillna("")
     rows = [row.to_dict() for _, row in df.iterrows()]
     return upsert_jobs(db_path, rows)
+
+
+def set_application_status(
+    db_path: str | Path, job_id: str, status: str, note: str = ""
+) -> None:
+    if status not in APPLICATION_STATUSES:
+        raise ValueError(f"unknown application status: {status}")
+    init_db(db_path)
+    with _connect(db_path) as conn:
+        conn.execute(
+            "INSERT OR REPLACE INTO applications (job_id, status, note, updated_at)"
+            " VALUES (?, ?, ?, ?)",
+            (job_id, status, note, datetime.now(timezone.utc).isoformat()),
+        )
+
+
+def load_applications(db_path: str | Path) -> list[dict]:
+    """All tracked applications, newest update first."""
+    if not Path(db_path).exists():
+        return []
+    init_db(db_path)
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT job_id, status, note, updated_at FROM applications"
+            " ORDER BY updated_at DESC"
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def delete_application(db_path: str | Path, job_id: str) -> bool:
+    if not Path(db_path).exists():
+        return False
+    init_db(db_path)
+    with _connect(db_path) as conn:
+        cur = conn.execute("DELETE FROM applications WHERE job_id = ?", (job_id,))
+    return cur.rowcount > 0
