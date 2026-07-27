@@ -544,6 +544,58 @@ def get_interview_session(session_id: str):
     }), 200
 
 
+@app.route('/api/applications', methods=['GET'])
+def list_applications():
+    """投递看板：每个被跟踪岗位的当前状态，按最近更新排序"""
+    try:
+        db_path = ROOT_DIR / 'jobs.db'
+        items = storage.load_applications(db_path)
+        jobs_by_id = {str(j.get('job_id')): j for j in storage.load_jobs(db_path)}
+        for item in items:
+            job = jobs_by_id.get(item['job_id'], {})
+            item['job_title'] = job.get('job_title', '')
+            item['company_name'] = job.get('company_name', '')
+        return jsonify({
+            'success': True,
+            'applications': items,
+            'statuses': list(storage.APPLICATION_STATUSES),
+        }), 200
+    except Exception as e:
+        logging.error(f"读取投递看板失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/applications/<job_id>', methods=['PUT'])
+def upsert_application(job_id: str):
+    """标记或更新一个岗位的投递状态"""
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        status = str(payload.get('status', '')).strip()
+        note = str(payload.get('note', '')).strip()
+        storage.set_application_status(ROOT_DIR / 'jobs.db', job_id, status, note)
+        return jsonify({'success': True}), 200
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'statuses': list(storage.APPLICATION_STATUSES),
+        }), 400
+    except Exception as e:
+        logging.error(f"更新投递状态失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/applications/<job_id>', methods=['DELETE'])
+def remove_application(job_id: str):
+    """从看板移除一个岗位"""
+    try:
+        removed = storage.delete_application(ROOT_DIR / 'jobs.db', job_id)
+        return jsonify({'success': True, 'removed': removed}), 200
+    except Exception as e:
+        logging.error(f"移除投递状态失败: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_DEBUG', '0').lower() in ('1', 'true', 'yes')
