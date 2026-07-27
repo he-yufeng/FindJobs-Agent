@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(cd \"/Users/heyufeng/Desktop/0/NLP Project 2\" && pandoc \"项目说明文档.md\" -o \"项目说明文档.pdf\" --pdf-engine=xelatex -V mainfont=\"PingFang SC\" -V geometry:margin=2.5cm -V fontsize=11pt -V CJKmainfont=\"PingFang SC\" -V documentclass=article 2>&1)",
+      "Bash(cd \"/Users/heyufeng/Desktop/0/NLP Project 2\" && pandoc \"项目说明文档.md\" -o \"项目说明文档.pdf\" --pdf-engine=xelatex --template=default -V mainfont=\"Songti SC\" -V geometry:margin=2.5cm -V fontsize=11pt 2>&1)",
+      "Bash(tail:*)",
+      "Bash(cd \"/Users/heyufeng/Desktop/0/NLP Project 2/FrontEnd\" && npx tsc --noEmit -p tsconfig.app.json 2>&1)",
+      "Bash(cd \"/Users/heyufeng/Desktop/0/NLP Project 2/FrontEnd\" && npm run build 2>&1)",
+      "Bash(cd \"/Users/heyufeng/Desktop/0/NLP Project 2\" && python3 -c \"\nimport ast\nfor f in ['api_server.py', 'interview_agent.py']:\n    with open\\(f\\) as fp:\n        ast.parse\\(fp.read\\(\\)\\)\n    print\\(f'{f}: OK'\\)\n\" 2>&1)",
+      "Bash(echo Cleaned ports:*)",
+      "Bash(head:*)",
+      "Bash(echo Stopped backend:*)",
+      "Bash(echo Servers stopped:*)",
+      "Bash(echo Cleaned:*)",
+      "Bash(cd:*)",
+      "Bash(cp:*)",
+      "Bash(cd /tmp/FindJobs-push && git push origin main 2>&1)",
+      "Bash(cd /tmp/FindJobs-push && git remote set-url origin git@github.com:universeplayer/FindJobs-Agent.git && git push origin main 2>&1)",
+      "Bash(gh auth:*)",
+      "Bash(brew install:*)",
+      "Bash(ssh-keygen:*)",
+      "WebFetch(domain:www.datawhale.cn)",
+      "WebFetch(domain:modelscope.cn)",
+      "WebSearch",
+      "WebFetch(domain:www.modelscope.cn)",
+      "Bash(echo stopped:*)",
+      "Bash(open:*)",
+      "Bash(grep Pages:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
