@@ -127,6 +127,16 @@ def load_jobs(db_path: str | Path) -> list[dict]:
     return [dict(row) for row in rows]
 
 
+def load_job_ids(db_path: str | Path) -> set[str]:
+    """Return the set of job_ids already stored (for incremental analysis)."""
+    if not Path(db_path).exists():
+        return set()
+    init_db(db_path)
+    with _connect(db_path) as conn:
+        rows = conn.execute("SELECT job_id FROM jobs").fetchall()
+    return {str(row[0]) for row in rows}
+
+
 def import_csv(db_path: str | Path, csv_path: str | Path) -> int:
     """Migrate an enriched CSV into the DB. Returns imported row count."""
     import pandas as pd

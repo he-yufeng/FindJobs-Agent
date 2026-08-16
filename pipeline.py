@@ -60,6 +60,24 @@ def backup_existing_data():
         logger.info(f"📦 备份分析数据: {backup.name}")
 
 
+def _export_full_csv() -> None:
+    """把 jobs.db 的全量内容回写成 jobs_enriched.csv。
+
+    增量分析后 jobs_enriched.csv 只含新分析的岗位；jobs.db 是唯一全量真源，
+    回写让 step3 和手工打开 CSV 看到的都是完整集合。
+    """
+    enriched_csv = ROOT_DIR / 'jobs_enriched.csv'
+    try:
+        import pandas as pd
+        import storage
+        rows = storage.load_jobs(ROOT_DIR / 'jobs.db')
+        if rows:
+            pd.DataFrame(rows).to_csv(enriched_csv, index=False)
+            logger.info(f"   - jobs_enriched.csv 已回写全量 {len(rows)} 个岗位")
+    except Exception as exc:
+        logger.warning(f"   - 回写全量 CSV 失败（不影响 jobs.db）: {exc}")
+
+
 def step1_crawl_jobs(companies: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     步骤1: 爬取原始岗位数据
@@ -90,7 +108,7 @@ def step1_crawl_jobs(companies: Optional[List[str]] = None) -> Dict[str, Any]:
         return {'success': False, 'count': 0}
 
 
-def step2_analyze_with_llm(max_jobs: Optional[int] = None) -> Dict[str, Any]:
+def step2_analyze_with_llm(max_jobs: Optional[int] = None, reanalyze_all: bool = False) -> Dict[str, Any]:
     """
     步骤2: 使用LLM智能分析（调用job_agent.py）
     
@@ -113,12 +131,35 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None) -> Dict[str, Any]:
     
     total_jobs = len(jobs)
     logger.info(f"📊 待分析岗位总数: {total_jobs}")
+
+    # 增量分析：jobs.db 里已有的岗位不再重复花 token（--reanalyze-all 可关）
+    if not reanalyze_all:
+        try:
+            import storage
+            known_ids = storage.load_job_ids(ROOT_DIR / 'jobs.db')
+        except Exception as exc:
+            logger.warning(f"   - 读取 jobs.db 失败，改为全量分析: {exc}")
+            known_ids = set()
+        if known_ids:
+            new_jobs = [j for j in jobs if str(j.get('job_id', '')) not in known_ids]
+            logger.info(f"   - 增量模式: 新增 {len(new_jobs)} 个，跳过已分析 {total_jobs - len(new_jobs)} 个")
+            jobs = new_jobs
+            if not jobs:
+                logger.info("✅ 没有新岗位需要分析")
+                _export_full_csv()
+                return {'success': True, 'count': 0, 'skipped': total_jobs}
     
     # 如果指定了最大数量，截取部分数据
-    if max_jobs and max_jobs < total_jobs:
+    if max_jobs and max_jobs < len(jobs):
         logger.info(f"⚠️  将只分析前 {max_jobs} 个岗位（完整分析请移除 --max-jobs 参数）")
         jobs = jobs[:max_jobs]
         # 保存截取后的数据
+        temp_file = ROOT_DIR / 'temp_jobs_for_analysis.json'
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            json.dump(jobs, f, ensure_ascii=False, indent=2)
+        input_file = temp_file
+    elif len(jobs) < total_jobs:
+        # 增量过滤后的子集
         temp_file = ROOT_DIR / 'temp_jobs_for_analysis.json'
         with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(jobs, f, ensure_ascii=False, indent=2)
@@ -174,6 +215,9 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None) -> Dict[str, Any]:
                 logger.info(f"   - 已同步 {written} 个岗位到 jobs.db")
             except Exception as exc:
                 logger.warning(f"   - 同步 jobs.db 失败（不影响 CSV 输出）: {exc}")
+            else:
+                # 增量模式下 CSV 只有新岗位；以 jobs.db 为真源回写全量
+                _export_full_csv()
             
             return {
                 'success': True,
@@ -312,6 +356,8 @@ def main():
                         help='限制分析的岗位数量（用于测试）')
     parser.add_argument('--no-backup', action='store_true',
                         help='不备份现有数据')
+    parser.add_argument('--reanalyze-all', action='store_true',
+                        help='重新分析全部岗位（默认增量：只分析 jobs.db 里没有的新岗位）')
     
     args = parser.parse_args()
     
@@ -331,7 +377,7 @@ def main():
     # 执行步骤
     if args.analyze_only:
         # 只分析
-        result2 = step2_analyze_with_llm(args.max_jobs)
+        result2 = step2_analyze_with_llm(args.max_jobs, reanalyze_all=args.reanalyze_all)
         if result2['success']:
             step3_prepare_for_website()
     elif args.crawl_only:
@@ -341,7 +387,7 @@ def main():
         # 完整流程
         result1 = step1_crawl_jobs(args.companies)
         if result1['success']:
-            result2 = step2_analyze_with_llm(args.max_jobs)
+            result2 = step2_analyze_with_llm(args.max_jobs, reanalyze_all=args.reanalyze_all)
             if result2['success']:
                 step3_prepare_for_website()
             else:
