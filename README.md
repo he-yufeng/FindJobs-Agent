@@ -44,6 +44,7 @@ FindJobs-Agent/
 │   └── package.json
 ├── job_crawler_v2.py        # Multi-company crawler (primary)
 ├── job_crawler_selenium.py  # Selenium crawler
+├── freehire_source.py       # freehire.me aggregator source (optional)
 ├── job_agent.py             # LLM job analysis agent
 ├── pipeline.py              # Data processing pipeline
 ├── api_server.py            # Flask API server
@@ -105,6 +106,16 @@ python pipeline.py                                          # crawl + analyze + 
 python job_crawler_v2.py -c tencent netease amazon -m 300   # crawl only (--list shows companies)
 python pipeline.py --analyze-only --max-jobs 50             # analyze only (for testing)
 ```
+
+An optional aggregator source is available via [freehire.me](https://freehire.me), an open IT job board whose public API needs no key. Each result already carries the full markdown JD and the employer's own ATS apply link, so there is no detail page to re-fetch. It stays off by default; flip it on with `--freehire`, or run it standalone:
+
+```bash
+python pipeline.py --freehire --freehire-query "backend"      # company crawlers + freehire
+python freehire_source.py -q "ml engineer" --skills python,pytorch --countries us,de -m 100
+python freehire_source.py --list-facets skills                # live filter vocabulary (skill slugs, country codes)
+```
+
+Filter vocabularies are read from `/api/v1/jobs/facets` at runtime instead of being hardcoded.
 
 ## API Endpoints
 

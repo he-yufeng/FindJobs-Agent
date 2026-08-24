@@ -44,6 +44,7 @@ FindJobs-Agent/
 │   └── package.json
 ├── job_crawler_v2.py        # 多公司爬虫（主力）
 ├── job_crawler_selenium.py  # Selenium 爬虫
+├── freehire_source.py       # freehire.me 聚合源（可选）
 ├── job_agent.py             # LLM 岗位分析 Agent
 ├── pipeline.py              # 数据处理流水线
 ├── api_server.py            # Flask API 服务
@@ -105,6 +106,16 @@ python pipeline.py                                          # 爬取 + 分析 + 
 python job_crawler_v2.py -c tencent netease amazon -m 300   # 仅爬取（--list 查看支持的公司）
 python pipeline.py --analyze-only --max-jobs 50             # 仅分析（测试）
 ```
+
+另有一个可选的聚合源：[freehire.me](https://freehire.me) 是开源 IT 职位聚合站，公开 API 免 key，搜索结果自带完整 markdown JD 和公司官方 ATS 投递链接，不用二次抓详情页。默认关闭，用 `--freehire` 打开，也可以单独跑：
+
+```bash
+python pipeline.py --freehire --freehire-query "backend"      # 公司爬虫之外再拉 freehire
+python freehire_source.py -q "ml engineer" --skills python,pytorch --countries us,de -m 100
+python freehire_source.py --list-facets skills                # 查看实时筛选词表（skill slug、国家码等）
+```
+
+筛选词表（技能 slug、国家码、枚举值）运行时从 `/api/v1/jobs/facets` 拉取，代码里不硬编码。
 
 ## API 接口
 

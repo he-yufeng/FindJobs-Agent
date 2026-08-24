@@ -78,26 +78,75 @@ def _export_full_csv() -> None:
         logger.warning(f"   - 回写全量 CSV 失败（不影响 jobs.db）: {exc}")
 
 
-def step1_crawl_jobs(companies: Optional[List[str]] = None) -> Dict[str, Any]:
+def _crawl_freehire(options: Dict[str, Any], raw_file: Path) -> None:
+    """可选追加：拉 freehire.me 聚合源，合并进原始数据（同一 schema，按 公司+job_id 去重）"""
+    freehire_file = ROOT_DIR / 'freehire_jobs_raw.json'
+    cmd = [
+        sys.executable,
+        str(ROOT_DIR / 'freehire_source.py'),
+        '-f', str(freehire_file),
+        '-m', str(options.get('max_jobs') or 300),
+    ]
+    if options.get('query'):
+        cmd += ['-q', options['query']]
+    if options.get('skills'):
+        cmd += ['--skills', options['skills']]
+    if options.get('countries'):
+        cmd += ['--countries', options['countries']]
+
+    logger.info(f"运行 freehire 源: {' '.join(cmd)}")
+    result = subprocess.run(cmd, cwd=str(ROOT_DIR))
+    if result.returncode != 0 or not freehire_file.exists():
+        logger.warning("⚠️  freehire 源拉取失败，只用公司爬虫的结果继续")
+        return
+    _merge_jobs_file(raw_file, freehire_file)
+
+
+def _merge_jobs_file(raw_file: Path, extra_file: Path) -> int:
+    """把 extra_file 的岗位合并进 raw_file，按 (company_name, job_id) 去重。返回新增数"""
+    base = []
+    if raw_file.exists():
+        with open(raw_file, 'r', encoding='utf-8') as f:
+            base = json.load(f)
+    with open(extra_file, 'r', encoding='utf-8') as f:
+        extra = json.load(f)
+    seen = {(j.get('company_name', ''), j.get('job_id', '')) for j in base}
+    merged = list(base)
+    added = 0
+    for job in extra:
+        key = (job.get('company_name', ''), job.get('job_id', ''))
+        if key not in seen:
+            seen.add(key)
+            merged.append(job)
+            added += 1
+    with open(raw_file, 'w', encoding='utf-8') as f:
+        json.dump(merged, f, ensure_ascii=False, indent=2)
+    logger.info(f"   - freehire 源新增 {added} 个岗位（去重后共 {len(merged)} 个）")
+    return added
+
+
+def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     步骤1: 爬取原始岗位数据
     """
     print_banner("步骤 1/3: 爬取原始岗位数据")
-    
+
     cmd = [
         sys.executable,
         str(ROOT_DIR / 'job_crawler_v2.py'),
         '-f', 'crawled_jobs_raw.json'
     ]
-    
+
     if companies:
         cmd.extend(['-c'] + companies)
-    
+
     logger.info(f"运行爬虫: {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=str(ROOT_DIR))
-    
+
     # 读取结果
     raw_file = ROOT_DIR / 'crawled_jobs_raw.json'
+    if freehire:
+        _crawl_freehire(freehire, raw_file)
     if raw_file.exists():
         with open(raw_file, 'r', encoding='utf-8') as f:
             jobs = json.load(f)
@@ -343,9 +392,10 @@ def main():
   python pipeline.py --analyze-only     # 只分析已爬取的数据
   python pipeline.py --max-jobs 100     # 只分析前100个岗位（测试用）
   python pipeline.py -c tencent amazon  # 只爬取指定公司
+  python pipeline.py --freehire --freehire-query "backend"  # 公司爬虫之外再拉 freehire 聚合源
         """
     )
-    
+
     parser.add_argument('-c', '--companies', nargs='*', default=None,
                         help='指定要爬取的公司')
     parser.add_argument('--crawl-only', action='store_true',
@@ -358,8 +408,27 @@ def main():
                         help='不备份现有数据')
     parser.add_argument('--reanalyze-all', action='store_true',
                         help='重新分析全部岗位（默认增量：只分析 jobs.db 里没有的新岗位）')
-    
+    parser.add_argument('--freehire', action='store_true',
+                        help='同时拉取 freehire.me 聚合源（IT 岗位，免 key，默认关闭）')
+    parser.add_argument('--freehire-query', default='',
+                        help='freehire 全文关键词')
+    parser.add_argument('--freehire-skills', default='',
+                        help='freehire 技能 slug，逗号分隔')
+    parser.add_argument('--freehire-countries', default='',
+                        help='freehire 国家码，逗号分隔，如 us,de')
+    parser.add_argument('--freehire-max', type=int, default=300,
+                        help='freehire 源最大岗位数')
+
     args = parser.parse_args()
+
+    freehire_opts = None
+    if args.freehire:
+        freehire_opts = {
+            'query': args.freehire_query,
+            'skills': args.freehire_skills,
+            'countries': args.freehire_countries,
+            'max_jobs': args.freehire_max,
+        }
     
     print_banner("岗位数据处理流水线")
     
@@ -382,10 +451,10 @@ def main():
             step3_prepare_for_website()
     elif args.crawl_only:
         # 只爬取
-        step1_crawl_jobs(args.companies)
+        step1_crawl_jobs(args.companies, freehire=freehire_opts)
     else:
         # 完整流程
-        result1 = step1_crawl_jobs(args.companies)
+        result1 = step1_crawl_jobs(args.companies, freehire=freehire_opts)
         if result1['success']:
             result2 = step2_analyze_with_llm(args.max_jobs, reanalyze_all=args.reanalyze_all)
             if result2['success']:
