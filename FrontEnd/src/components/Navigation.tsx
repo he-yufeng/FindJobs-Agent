@@ -1,14 +1,15 @@
-import { FileText, Briefcase } from 'lucide-react';
+import { FileText, Briefcase, KanbanSquare } from 'lucide-react';
 
 interface NavigationProps {
-  currentPage: 'resume' | 'jobs' | 'interview';
-  onNavigate: (page: 'resume' | 'jobs' | 'interview') => void;
+  currentPage: 'resume' | 'jobs' | 'interview' | 'applications';
+  onNavigate: (page: 'resume' | 'jobs' | 'interview' | 'applications') => void;
 }
 
 export default function Navigation({ currentPage, onNavigate }: NavigationProps) {
   const navItems = [
     { id: 'resume' as const, label: '简历分析', icon: FileText },
     { id: 'jobs' as const, label: '岗位匹配', icon: Briefcase },
+    { id: 'applications' as const, label: '投递看板', icon: KanbanSquare },
   ];
 
   return (
