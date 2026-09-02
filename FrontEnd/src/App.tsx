@@ -3,9 +3,10 @@ import Navigation from './components/Navigation';
 import ResumePage from './components/ResumePage';
 import JobsPage from './components/JobsPage';
 import InterviewPage from './components/InterviewPage';
+import ApplicationsPage from './components/ApplicationsPage';
 import { JobPosition, Resume, ResumeSkill } from './types';
 
-type Page = 'resume' | 'jobs' | 'interview';
+type Page = 'resume' | 'jobs' | 'interview' | 'applications';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('resume');
@@ -41,6 +42,7 @@ function App() {
         />
       )}
       {currentPage === 'jobs' && <JobsPage onStartInterview={handleStartJobInterview} />}
+      {currentPage === 'applications' && <ApplicationsPage />}
       {currentPage === 'interview' && <InterviewPage job={selectedJob} onBack={handleBackToJobs} />}
     </div>
   );

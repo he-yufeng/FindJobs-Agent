@@ -134,7 +134,7 @@ Crawl, analyze, resume match, and mock interview work end to end. The next steps
 
 - **More job sources** — extend the crawler beyond the current company set to job boards and aggregators, so matching isn't limited to a fixed list.
 - **Incremental crawls** — track which postings were already seen and fetch only new ones, instead of re-crawling and re-analyzing the full set each run.
-- **Application tracking** — the backend is in: `/api/applications` keeps a per-job status board (bookmarked / applied / replied / interview / offer / rejected) in SQLite. The UI board on top of it is next.
+- **Application tracking** — a board page in the frontend tracks each job through bookmarked / applied / replied / interview / offer / rejected, backed by `/api/applications` in SQLite. Status changes and notes save inline.
 - **Voice mock interviews** — speech in and out for the AI interviewer, closer to a real screen than a text chat.
 
 ## Related Projects
