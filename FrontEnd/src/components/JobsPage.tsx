@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, MapPin, DollarSign, CheckCircle2, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { Search, MapPin, DollarSign, CheckCircle2, ChevronLeft, ChevronRight, MessageSquare, Bookmark, BookmarkCheck } from 'lucide-react';
 import { JobPosition } from '../types';
 import { getJobs, simulateJobMatching } from '../lib/mockApi';
+import { getApplications, removeApplication, setApplicationStatus } from '../lib/applicationsApi';
 
 const ITEMS_PER_PAGE = 4;
 
@@ -20,6 +21,7 @@ export default function JobsPage({ onStartInterview }: JobsPageProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [resumeId, setResumeId] = useState<string | null>(null);
+  const [trackedIds, setTrackedIds] = useState<Set<string>>(new Set());
 
   const loadJobs = useCallback(async () => {
     try {
@@ -112,7 +114,32 @@ export default function JobsPage({ onStartInterview }: JobsPageProps) {
       setResumeId(savedResumeId);
     }
     loadJobs();
+    getApplications()
+      .then(data => setTrackedIds(new Set(data.applications.map(item => item.job_id))))
+      .catch(() => {});
   }, [loadJobs]);
+
+  const toggleTrack = async (job: JobPosition) => {
+    const tracked = trackedIds.has(job.id);
+    try {
+      if (tracked) {
+        await removeApplication(job.id);
+      } else {
+        await setApplicationStatus(job.id, 'bookmarked', '');
+      }
+      setTrackedIds(prev => {
+        const next = new Set(prev);
+        if (tracked) {
+          next.delete(job.id);
+        } else {
+          next.add(job.id);
+        }
+        return next;
+      });
+    } catch (error) {
+      console.error('Error updating board:', error);
+    }
+  };
 
   useEffect(() => {
     // 使用当前的matchScores进行排序
@@ -334,6 +361,21 @@ export default function JobsPage({ onStartInterview }: JobsPageProps) {
                   >
                     <MessageSquare className="w-4 h-4" />
                     <span>模拟面试</span>
+                  </button>
+                  <button
+                    className={`px-6 py-2.5 rounded-lg transition-colors font-medium flex items-center space-x-2 border ${
+                      trackedIds.has(job.id)
+                        ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
+                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                    onClick={() => toggleTrack(job)}
+                  >
+                    {trackedIds.has(job.id) ? (
+                      <BookmarkCheck className="w-4 h-4" />
+                    ) : (
+                      <Bookmark className="w-4 h-4" />
+                    )}
+                    <span>{trackedIds.has(job.id) ? '已收藏' : '收藏'}</span>
                   </button>
                   <button
                     className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"

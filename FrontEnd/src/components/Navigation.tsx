@@ -1,4 +1,6 @@
-import { FileText, Briefcase, KanbanSquare } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { FileText, Briefcase, KanbanSquare, MessageSquare } from 'lucide-react';
+import { getHealth } from '../lib/mockApi';
 
 interface NavigationProps {
   currentPage: 'resume' | 'jobs' | 'interview' | 'applications';
@@ -6,9 +8,18 @@ interface NavigationProps {
 }
 
 export default function Navigation({ currentPage, onNavigate }: NavigationProps) {
+  const [demo, setDemo] = useState(false);
+
+  useEffect(() => {
+    getHealth()
+      .then(data => setDemo(data.demo === true))
+      .catch(() => setDemo(false));
+  }, []);
+
   const navItems = [
     { id: 'resume' as const, label: '简历分析', icon: FileText },
     { id: 'jobs' as const, label: '岗位匹配', icon: Briefcase },
+    { id: 'interview' as const, label: '模拟面试', icon: MessageSquare },
     { id: 'applications' as const, label: '投递看板', icon: KanbanSquare },
   ];
 
@@ -22,6 +33,11 @@ export default function Navigation({ currentPage, onNavigate }: NavigationProps)
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-semibold text-gray-900">FindBestCareers</span>
+              {demo && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                  Demo
+                </span>
+              )}
             </div>
           </div>
 

@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
-**[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [快速开始](#快速开始) · [工作流程](#工作流程) · [核心功能](#核心功能)
+**[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [两分钟演示](#两分钟跑个演示demo-模式) · [快速开始](#快速开始) · [工作流程](#工作流程) · [核心功能](#核心功能)
 
 </div>
 
@@ -15,6 +15,20 @@
 ## 简介
 
 一个集成了岗位数据爬取、LLM 智能分析、简历解析和 AI 模拟面试的全栈求职辅助系统。
+
+## 两分钟跑个演示（Demo 模式）
+
+不想先配 API Key，也能把整套流程完整跑一遍。Demo 模式完全离线：
+
+```bash
+pip install -r requirements.txt
+FINDJOBS_DEMO=1 python api_server.py        # 后端 :5000，数据库为空时自动写入示例岗位
+cd FrontEnd && npm install && npm run dev   # 前端 :8080
+```
+
+Demo 模式具体做的事：启动时如果 `jobs.db` 是空的，就从 `data/sample_jobs.json` 写入 54 条手工编写的示例岗位（覆盖爬虫支持的那些公司）；所有 LLM 调用改走 `demo_llm.py` 里的确定性离线桩，根据 prompt 内容生成回答，不发任何网络请求，即使本地已经配了 Key。在简历页直接上传仓库自带的 `data/sample_resume.pdf`，就能把简历解析、岗位匹配、三阶段模拟面试和投递看板整条链路体验一遍。后端以 Demo 模式运行时，导航栏会多出一个「Demo」小标记。
+
+两个演示数据文件都可以重新生成：`python scripts/seed_demo_data.py` 和 `python scripts/make_sample_resume.py`。
 
 ## 工作流程
 
@@ -28,6 +42,7 @@
 - **LLM 智能分析** — 自动提取学历/专业要求，给技能标签打重要性分（1-5），并按岗位族谱分类。
 - **简历解析与匹配** — 解析 PDF/Word 简历、给技能打分，算出不区分大小写的岗位-简历匹配度。
 - **AI 模拟面试** — 基于任意岗位 JD 生成针对性问题，多轮对话面试并实时反馈。
+- **Demo 模式**：设 `FINDJOBS_DEMO=1` 即可离线跑通整个应用，示例岗位、内置示例简历、确定性桩 LLM 都备好了，不需要付费 Key。
 - **SQLite 持久化** — 分析结果写入本地 `jobs.db`，首次启动自动迁移已有的 CSV 数据，数据库为空时回退原 CSV/JSON 路径。上传的简历和模拟面试记录也存在同一个库里，重启 API 服务不再丢失。
 
 ## 项目结构
@@ -49,6 +64,9 @@ FindJobs-Agent/
 ├── pipeline.py              # 数据处理流水线
 ├── api_server.py            # Flask API 服务
 ├── storage.py               # SQLite 存储：岗位、投递状态、简历、面试记录（jobs.db）
+├── demo_llm.py              # Demo 模式用的确定性离线桩 LLM
+├── data/                    # 演示数据：sample_jobs.json、sample_resume.pdf
+├── scripts/                 # 辅助脚本：演示数据写入、示例简历生成、爬虫冒烟测试
 ├── interview_agent.py       # AI 面试模块
 ├── resume_parser.py         # 简历解析
 ├── tag_rate.py              # 技能评分
