@@ -24,6 +24,16 @@ type InterviewMessageResponse = {
   message: string;
 };
 
+type HealthResponse = {
+  status: string;
+  demo?: boolean;
+};
+
+export async function getHealth(): Promise<HealthResponse> {
+  const response = await fetch(`${API_BASE}/health`);
+  return readJson<HealthResponse>(response);
+}
+
 async function readJson<T>(response: Response): Promise<T> {
   const text = await response.text();
   const body = text ? JSON.parse(text) : {};

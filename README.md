@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
-**[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [Quick Start](#quick-start) · [How It Works](#how-it-works) · [Features](#features)
+**[English](README.md) · [中文](README_CN.md)** &nbsp;·&nbsp; [Demo](#try-it-in-2-minutes-demo-mode) · [Quick Start](#quick-start) · [How It Works](#how-it-works) · [Features](#features)
 
 </div>
 
@@ -15,6 +15,20 @@
 ## What is FindJobs-Agent?
 
 A full-stack job search assistant that crawls postings from major tech companies, analyzes them with LLMs, parses your resume, and runs AI mock interviews — so you can focus on preparing, not sifting through job boards.
+
+## Try It in 2 Minutes (Demo Mode)
+
+No API key? No problem. Demo mode runs the whole app offline:
+
+```bash
+pip install -r requirements.txt
+FINDJOBS_DEMO=1 python api_server.py        # backend on :5000, seeds sample jobs on first run
+cd FrontEnd && npm install && npm run dev   # frontend on :8080
+```
+
+With `FINDJOBS_DEMO=1`, the server fills an empty `jobs.db` from `data/sample_jobs.json` (54 hand-written postings from the companies the crawlers target) and routes every LLM call through `demo_llm.py`, a deterministic stub that answers from the prompt content and never touches the network, even if a key is configured. Upload the bundled `data/sample_resume.pdf` on the resume page to walk the full loop: parsing, match scores, a 3-stage mock interview, and the tracking board. While the backend runs in demo mode, a small "Demo" badge shows in the navbar.
+
+Both fixtures can be regenerated with `python scripts/seed_demo_data.py` and `python scripts/make_sample_resume.py`.
 
 ## How It Works
 
@@ -28,6 +42,7 @@ Four pieces wired into one flow: a crawler pulls postings from company career si
 - **LLM analysis** — extracts education/major requirements, scores skill tags (1–5), and classifies each posting into a job taxonomy.
 - **Resume parsing & matching** — parses PDF/Word resumes, scores skills, and computes a case-insensitive job-resume match percentage.
 - **AI mock interview** — generates questions from any job description and runs a multi-turn interview with real-time feedback.
+- **Demo mode**: set `FINDJOBS_DEMO=1` to run the full app offline with seeded sample jobs, a bundled sample resume, and a deterministic stub LLM instead of a paid key.
 - **SQLite persistence** — analyzed postings are stored in a local `jobs.db`; existing CSV data is migrated automatically on first run, with CSV/JSON as fallback. Uploaded resumes and mock-interview transcripts live in the same database, so restarting the API server no longer wipes them.
 
 ## Project Structure
@@ -49,6 +64,9 @@ FindJobs-Agent/
 ├── pipeline.py              # Data processing pipeline
 ├── api_server.py            # Flask API server
 ├── storage.py               # SQLite store: jobs, applications, resumes, interviews (jobs.db)
+├── demo_llm.py              # Deterministic offline stub LLM used in demo mode
+├── data/                    # Demo fixtures: sample_jobs.json, sample_resume.pdf
+├── scripts/                 # Helpers: demo seeding, sample resume generator, crawler smoke test
 ├── interview_agent.py       # AI interview module
 ├── resume_parser.py         # Resume parser
 ├── tag_rate.py              # Skill scoring
