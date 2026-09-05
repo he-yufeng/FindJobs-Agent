@@ -28,7 +28,7 @@
 - **LLM 智能分析** — 自动提取学历/专业要求，给技能标签打重要性分（1-5），并按岗位族谱分类。
 - **简历解析与匹配** — 解析 PDF/Word 简历、给技能打分，算出不区分大小写的岗位-简历匹配度。
 - **AI 模拟面试** — 基于任意岗位 JD 生成针对性问题，多轮对话面试并实时反馈。
-- **SQLite 持久化** — 分析结果写入本地 `jobs.db`，首次启动自动迁移已有的 CSV 数据，数据库为空时回退原 CSV/JSON 路径。
+- **SQLite 持久化** — 分析结果写入本地 `jobs.db`，首次启动自动迁移已有的 CSV 数据，数据库为空时回退原 CSV/JSON 路径。上传的简历和模拟面试记录也存在同一个库里，重启 API 服务不再丢失。
 
 ## 项目结构
 
@@ -48,7 +48,7 @@ FindJobs-Agent/
 ├── job_agent.py             # LLM 岗位分析 Agent
 ├── pipeline.py              # 数据处理流水线
 ├── api_server.py            # Flask API 服务
-├── storage.py               # SQLite 岗位存储（jobs.db）
+├── storage.py               # SQLite 存储：岗位、投递状态、简历、面试记录（jobs.db）
 ├── interview_agent.py       # AI 面试模块
 ├── resume_parser.py         # 简历解析
 ├── tag_rate.py              # 技能评分
