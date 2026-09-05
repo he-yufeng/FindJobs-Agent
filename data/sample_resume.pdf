@@ -1,0 +1,85 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1307 >>
+stream
+BT
+/F1 10 Tf
+50 760 Td
+13 TL
+(Name: Chen Xiaoyu) Tj
+T*
+(Email: xiaoyu.chen@example.com) Tj
+T*
+(Phone: +86-13800138000) Tj
+T*
+() Tj
+T*
+(Education:) Tj
+T*
+(- The University of Hong Kong | MS Computer Science | 2024-2026) Tj
+T*
+(- Sun Yat-sen University | BS Software Engineering | 2020-2024) Tj
+T*
+() Tj
+T*
+(Experience:) Tj
+T*
+(- Moonshot AI | LLM Infrastructure Intern | 2025.03-2025.09: Built the evaluation) Tj
+T*
+(  harness for model releases in Python, automated regression runs with Docker and) Tj
+T*
+(  Kubernetes, and cut manual review time by half.) Tj
+T*
+(- Tencent | Backend Development Intern | 2023.06-2023.12: Implemented a Redis backed hot) Tj
+T*
+(  key cache for a high traffic mini program API in Python and Go; p99 latency dropped) Tj
+T*
+(  from 220ms to 90ms at 30k QPS in staging.) Tj
+T*
+() Tj
+T*
+(Skills:) Tj
+T*
+(Python, PyTorch, MySQL, Redis, Docker, Kubernetes, Linux, SQL, NLP, machine learning,) Tj
+T*
+(recommendation systems, distributed systems, data analysis, Git) Tj
+T*
+() Tj
+T*
+(Projects:) Tj
+T*
+(- Retrieval augmented QA over arXiv papers with PyTorch and FAISS, bilingual reranking,) Tj
+T*
+(  92 percent top-1 accuracy on an internal benchmark.) Tj
+T*
+(- A small Raft implementation in Python with fault injection tests for leader election) Tj
+T*
+(  and log replication.) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1670
+%%EOF

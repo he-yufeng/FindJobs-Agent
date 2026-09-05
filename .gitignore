@@ -108,6 +108,7 @@ backup/
 *.tar.gz
 *.rar
 *.pdf
+!data/sample_resume.pdf
 *.docx
 
 # ==================== 上传的用户文件 ====================
