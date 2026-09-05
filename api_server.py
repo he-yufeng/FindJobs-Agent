@@ -51,10 +51,10 @@ resume_parser = ResumeParser()
 job_matcher = JobMatcher()
 interview_agent = InterviewAgent()
 
-# 内存存储（生产环境应使用数据库）
-resumes_store: Dict[str, Dict[str, Any]] = {}
+# 简历与面试会话持久化在 jobs.db（见 storage.py），重启不丢。
+# jobs_store 只是 /api/jobs 的内存缓存：岗位数据本身存在 jobs.db，
+# 每次 GET /api/jobs 都会从数据库重新填充它。
 jobs_store: List[Dict[str, Any]] = []
-interview_sessions: Dict[str, Dict[str, Any]] = {}
 
 # Regex for valid UUID-style file IDs (path traversal protection)
 _VALID_FILE_ID_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
@@ -100,7 +100,7 @@ def upload_resume():
         # 解析简历
         result = resume_parser.parse_resume(str(file_path))
         
-        # 保存到内存存储
+        # 持久化到 jobs.db
         resume_data = {
             'id': file_id,
             'user_id': 'default_user',  # 可以从认证系统获取
@@ -111,7 +111,7 @@ def upload_resume():
             'status': 'completed',
             'skills': result['skills']
         }
-        resumes_store[file_id] = resume_data
+        storage.save_resume(ROOT_DIR / 'jobs.db', resume_data)
         
         logging.info(f"简历解析完成: {file_id}")
         
@@ -152,10 +152,10 @@ def get_resume_file(file_id: str):
 @app.route('/api/resume/<resume_id>', methods=['GET'])
 def get_resume(resume_id: str):
     """获取箠历详情"""
-    if resume_id not in resumes_store:
+    resume_data = storage.load_resume(ROOT_DIR / 'jobs.db', resume_id)
+    if resume_data is None:
         return jsonify({'error': 'Resume not found'}), 404
-    
-    resume_data = resumes_store[resume_id]
+
     return jsonify({
         'resume': {
             'id': resume_data['id'],
@@ -363,11 +363,11 @@ def match_jobs():
     try:
         data = request.json
         resume_id = data.get('resume_id')
-        
-        if not resume_id or resume_id not in resumes_store:
+
+        resume_data = storage.load_resume(ROOT_DIR / 'jobs.db', resume_id) if resume_id else None
+        if not resume_id or resume_data is None:
             return jsonify({'error': 'Resume not found'}), 404
-        
-        resume_data = resumes_store[resume_id]
+
         resume_skills = resume_data['skills']
         
         # 加载岗位
@@ -395,18 +395,18 @@ def start_interview():
         data = request.json
         resume_id = data.get('resume_id')
         job_id = data.get('job_id')
-        
-        if resume_id and resume_id not in resumes_store:
-            return jsonify({'error': 'Resume not found'}), 404
-        
-        session_id = str(uuid.uuid4())
-        
+        db_path = ROOT_DIR / 'jobs.db'
+
         # 获取简历和岗位信息
-        resume_data = resumes_store.get(resume_id) if resume_id else None
+        resume_data = storage.load_resume(db_path, resume_id) if resume_id else None
+        if resume_id and resume_data is None:
+            return jsonify({'error': 'Resume not found'}), 404
         job_data = next((j for j in jobs_store if j['id'] == job_id), None) if job_id else None
-        
+
+        session_id = str(uuid.uuid4())
+
         # 初始化面试会话
-        interview_sessions[session_id] = {
+        session = {
             'id': session_id,
             'resume_id': resume_id,
             'job_id': job_id,
@@ -418,10 +418,10 @@ def start_interview():
             'qa_count': 0,
             'max_qa': 5
         }
-        
+
         # 生成开场白（不出题）
         start_result = interview_agent.start_interview(resume_data, job_data)
-        
+
         # 添加开场白消息（仅开场白与自我介绍提示）
         greeting_msg = {
             'id': str(uuid.uuid4()),
@@ -432,9 +432,12 @@ def start_interview():
             'question': None,
             'stage': start_result.get('stage', 'greeting')
         }
-        interview_sessions[session_id]['messages'].append(greeting_msg)
-        interview_sessions[session_id]['stage'] = start_result.get('stage', 'greeting')
-        interview_sessions[session_id]['phase'] = start_result.get('stage', 'greeting')
+        session['messages'].append(greeting_msg)
+        session['stage'] = start_result.get('stage', 'greeting')
+        session['phase'] = start_result.get('stage', 'greeting')
+
+        storage.save_interview_session(db_path, session)
+        storage.append_interview_message(db_path, session_id, greeting_msg)
         
         return jsonify({
             'session_id': session_id,
@@ -452,18 +455,19 @@ def start_interview():
 def send_interview_message(session_id: str):
     """发送面试消息"""
     try:
-        if session_id not in interview_sessions:
+        db_path = ROOT_DIR / 'jobs.db'
+        session = storage.load_interview_session(db_path, session_id)
+        if session is None:
             return jsonify({'error': 'Session not found'}), 404
-        
+
         data = request.json
         user_message = data.get('message', '')
-        
+
         if not user_message:
             return jsonify({'error': 'Message is required'}), 400
-        
-        session = interview_sessions[session_id]
+
         current_stage = session.get('stage', 'greeting')
-        
+
         # 添加用户消息
         user_msg = {
             'id': str(uuid.uuid4()),
@@ -473,11 +477,12 @@ def send_interview_message(session_id: str):
             'created_at': datetime.now().isoformat()
         }
         session['messages'].append(user_msg)
-        
+        storage.append_interview_message(db_path, session_id, user_msg)
+
         # 获取简历和岗位信息
-        resume_data = resumes_store.get(session['resume_id']) if session['resume_id'] else None
+        resume_data = storage.load_resume(db_path, session['resume_id']) if session['resume_id'] else None
         job_data = next((j for j in jobs_store if j['id'] == session['job_id']), None) if session['job_id'] else None
-        
+
         # 生成AI回复
         response = interview_agent.respond(
             user_message,
@@ -486,17 +491,17 @@ def send_interview_message(session_id: str):
             job_data,
             session_state=session
         )
-        
+
         # 更新阶段与计数器
         new_phase = response.get('phase', session.get('phase', current_stage))
         session['phase'] = new_phase
         session['stage'] = new_phase
         if 'qa_count' in response:
             session['qa_count'] = response['qa_count']
-        
+
         # 构建回复内容
         reply_content = response.get('message', '')
-        
+
         # 添加AI回复
         assistant_msg = {
             'id': str(uuid.uuid4()),
@@ -509,6 +514,8 @@ def send_interview_message(session_id: str):
             'stage': new_phase
         }
         session['messages'].append(assistant_msg)
+        storage.save_interview_session(db_path, session)
+        storage.append_interview_message(db_path, session_id, assistant_msg)
         
         return jsonify({
             'message': reply_content,
@@ -525,13 +532,24 @@ def send_interview_message(session_id: str):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/interview', methods=['GET'])
+def list_interviews():
+    """面试会话索引：全部会话按开始时间倒序，不含消息正文"""
+    try:
+        sessions = storage.list_interview_sessions(ROOT_DIR / 'jobs.db')
+        return jsonify({'sessions': sessions}), 200
+    except Exception as e:
+        logging.error(f"读取面试会话列表失败: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/interview/<session_id>', methods=['GET'])
 def get_interview_session(session_id: str):
     """获取面试会话"""
-    if session_id not in interview_sessions:
+    session = storage.load_interview_session(ROOT_DIR / 'jobs.db', session_id)
+    if session is None:
         return jsonify({'error': 'Session not found'}), 404
-    
-    session = interview_sessions[session_id]
+
     return jsonify({
         'session': {
             'id': session['id'],
