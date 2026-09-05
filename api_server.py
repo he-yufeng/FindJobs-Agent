@@ -51,6 +51,37 @@ resume_parser = ResumeParser()
 job_matcher = JobMatcher()
 interview_agent = InterviewAgent()
 
+
+def demo_mode_on() -> bool:
+    return os.environ.get('FINDJOBS_DEMO', '').strip().lower() in ('1', 'true', 'yes')
+
+
+def enable_demo_mode() -> bool:
+    """Route every LLM call through the offline stub. Returns whether demo is on."""
+    if not demo_mode_on():
+        return False
+    from demo_llm import DemoLLM
+    stub = DemoLLM()
+    resume_parser.llm = stub
+    interview_agent.llm = stub
+    return True
+
+
+def ensure_demo_seed(db_path) -> int:
+    """Demo mode only: fill an empty jobs.db from data/sample_jobs.json."""
+    if not demo_mode_on() or storage.count_jobs(db_path) > 0:
+        return 0
+    from scripts.seed_demo_data import seed_demo_data
+    written = seed_demo_data(db_path)
+    if written:
+        logging.info(f"演示模式：已写入 {written} 个示例岗位到 {db_path}")
+    return written
+
+
+DEMO_MODE = enable_demo_mode()
+if DEMO_MODE:
+    ensure_demo_seed(ROOT_DIR / 'jobs.db')
+
 # 简历与面试会话持久化在 jobs.db（见 storage.py），重启不丢。
 # jobs_store 只是 /api/jobs 的内存缓存：岗位数据本身存在 jobs.db，
 # 每次 GET /api/jobs 都会从数据库重新填充它。
@@ -72,7 +103,7 @@ def allowed_file(filename: str) -> bool:
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """健康检查"""
-    return jsonify({'status': 'ok', 'message': 'API server is running'})
+    return jsonify({'status': 'ok', 'message': 'API server is running', 'demo': demo_mode_on()})
 
 
 @app.route('/api/resume/upload', methods=['POST'])
@@ -180,6 +211,7 @@ def get_jobs():
     3. bytedance_jobs_enriched.csv - 原始字节跳动数据
     """
     try:
+        ensure_demo_seed(ROOT_DIR / 'jobs.db')
         jobs = []
         data_source = "none"
         enriched_csv = ROOT_DIR / 'jobs_enriched.csv'
