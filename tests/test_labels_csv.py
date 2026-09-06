@@ -3,7 +3,7 @@
 import csv
 from pathlib import Path
 
-LABELS_CSV = Path(__file__).resolve().parent.parent / "all_labels.csv"
+LABELS_CSV = Path(__file__).resolve().parent.parent / "data" / "all_labels.csv"
 
 
 def test_labels_csv_is_tracked_and_parses():
