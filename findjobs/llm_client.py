@@ -21,7 +21,7 @@ except Exception:
     load_api_keys = None  # type: ignore
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_CONFIG_FILE = ROOT_DIR / "llm_config.json"
+DEFAULT_CONFIG_FILE = ROOT_DIR / "config" / "llm_config.json"
 DEFAULT_API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
 
 DEFAULTS = {

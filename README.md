@@ -57,22 +57,20 @@ FindJobs-Agent/
 │   │   │   └── InterviewPage.tsx  # AI interview
 │   │   └── App.tsx
 │   └── package.json
-├── job_crawler_v2.py        # Multi-company crawler (primary)
-├── job_crawler_selenium.py  # Selenium crawler
-├── freehire_source.py       # freehire.me aggregator source (optional)
-├── job_agent.py             # LLM job analysis agent
-├── pipeline.py              # Data processing pipeline
-├── api_server.py            # Flask API server
-├── storage.py               # SQLite store: jobs, applications, resumes, interviews (jobs.db)
-├── demo_llm.py              # Deterministic offline stub LLM used in demo mode
-├── data/                    # Demo fixtures: sample_jobs.json, sample_resume.pdf
+├── findjobs/                # The package: crawler, matcher, resume, interview, pipeline
+│   ├── pipeline.py          # Main pipeline; also the `findjobs` CLI entry
+│   ├── job_agent.py         # LLM job analysis agent
+│   ├── api_server.py        # Flask API server
+│   ├── storage.py           # SQLite store: jobs, applications, resumes, interviews (jobs.db)
+│   ├── interview_agent.py   # AI interview module
+│   ├── resume_parser.py     # Resume parser
+│   └── ...                  # crawlers, scoring, LLM client, demo stub
+├── data/                    # Label library + taxonomy + demo fixtures
+├── config/                  # llm_config.json and deployment configs
+├── docs/                    # API reference and project notes
 ├── scripts/                 # Helpers: demo seeding, sample resume generator, crawler smoke test
-├── interview_agent.py       # AI interview module
-├── resume_parser.py         # Resume parser
-├── tag_rate.py              # Skill scoring
-├── llm_client.py            # LLM client
-├── tech_taxonomy.json       # Job taxonomy
-├── all_labels.csv           # Skill tag library
+├── tests/                   # pytest suite
+├── pyproject.toml
 └── requirements.txt
 ```
 

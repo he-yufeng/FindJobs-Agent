@@ -60,7 +60,7 @@ def get_next_api_key() -> str:
         return key
 
 # 输入 / 输出文件
-TAGS_CSV = ROOT_DIR / "all_labels copy.csv"
+TAGS_CSV = ROOT_DIR / "data" / "all_labels.csv"
 USER_DATA_CSV = ROOT_DIR / "merged_user_descriptions.csv"
 OUTPUT_CSV = ROOT_DIR / "new_labels_list.csv"  # 输出文件名
 
