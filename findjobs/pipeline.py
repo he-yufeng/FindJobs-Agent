@@ -21,7 +21,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-ROOT_DIR = Path(__file__).parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 # 配置日志
 logging.basicConfig(
@@ -69,7 +69,7 @@ def _export_full_csv() -> None:
     enriched_csv = ROOT_DIR / 'jobs_enriched.csv'
     try:
         import pandas as pd
-        import storage
+        from . import storage
         rows = storage.load_jobs(ROOT_DIR / 'jobs.db')
         if rows:
             pd.DataFrame(rows).to_csv(enriched_csv, index=False)
@@ -184,7 +184,7 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None, reanalyze_all: bool =
     # 增量分析：jobs.db 里已有的岗位不再重复花 token（--reanalyze-all 可关）
     if not reanalyze_all:
         try:
-            import storage
+            from . import storage
             known_ids = storage.load_job_ids(ROOT_DIR / 'jobs.db')
         except Exception as exc:
             logger.warning(f"   - 读取 jobs.db 失败，改为全量分析: {exc}")
@@ -257,7 +257,7 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None, reanalyze_all: bool =
 
             # 同步进 SQLite（API 的一等读源；CSV 保留作导出）
             try:
-                import storage
+                from . import storage
                 written = storage.upsert_jobs(
                     ROOT_DIR / 'jobs.db', df.fillna("").to_dict("records")
                 )

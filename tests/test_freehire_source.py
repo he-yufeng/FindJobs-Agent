@@ -6,8 +6,8 @@ import logging
 import pytest
 import requests
 
-import freehire_source
-from freehire_source import FreehireAPIError, FreehireCrawler
+import findjobs.freehire_source as freehire_source
+from findjobs.freehire_source import FreehireAPIError, FreehireCrawler
 
 RAW_KEYS = {
     'company_name', 'job_title', 'job_id', 'category', 'location', 'job_type',

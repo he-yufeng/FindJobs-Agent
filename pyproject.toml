@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "findjobs-agent"
+version = "1.0.0rc1"
+description = "LLM-powered job toolkit: skill gap analysis, mock interviews, resume optimization, and job structuring"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "pandas>=2.1.4",
+    "requests>=2.31.0",
+    "PyPDF2>=3.0.1",
+    "urllib3>=1.26.0",
+    "gunicorn>=21.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+findjobs = "findjobs.pipeline:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["findjobs"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
