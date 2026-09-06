@@ -27,7 +27,7 @@ MAX_WORKERS = 10  # 并行处理的最大线程数（对应10个API keys）
 # --- 文件路径配置 (File Path Configuration) ---
 ROOT_DIR = Path(__file__).resolve().parent
 USER_PROFILE_CSV = ROOT_DIR / 'user_descriptions copy.csv'
-OFFICIAL_TAGS_CSV = ROOT_DIR / 'all_labels.csv'
+OFFICIAL_TAGS_CSV = ROOT_DIR / 'data' / 'all_labels.csv'
 API_KEY_FILE = ROOT_DIR / 'API_key-openai.md'
 # 注意：OUTPUT_CSV 现在既是输入也是输出
 OUTPUT_CSV = ROOT_DIR / 'ai_user_tags.csv'

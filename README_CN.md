@@ -57,22 +57,20 @@ FindJobs-Agent/
 │   │   │   └── InterviewPage.tsx  # AI 面试
 │   │   └── App.tsx
 │   └── package.json
-├── job_crawler_v2.py        # 多公司爬虫（主力）
-├── job_crawler_selenium.py  # Selenium 爬虫
-├── freehire_source.py       # freehire.me 聚合源（可选）
-├── job_agent.py             # LLM 岗位分析 Agent
-├── pipeline.py              # 数据处理流水线
-├── api_server.py            # Flask API 服务
-├── storage.py               # SQLite 存储：岗位、投递状态、简历、面试记录（jobs.db）
-├── demo_llm.py              # Demo 模式用的确定性离线桩 LLM
-├── data/                    # 演示数据：sample_jobs.json、sample_resume.pdf
+├── findjobs/                # 包本体：爬虫、匹配、简历、面试、流水线
+│   ├── pipeline.py          # 主流水线，也是 `findjobs` CLI 入口
+│   ├── job_agent.py         # LLM 岗位分析 Agent
+│   ├── api_server.py        # Flask API 服务
+│   ├── storage.py           # SQLite 存储：岗位、投递状态、简历、面试记录（jobs.db）
+│   ├── interview_agent.py   # AI 面试模块
+│   ├── resume_parser.py     # 简历解析
+│   └── ...                  # 爬虫、评分、LLM 客户端、demo 桩
+├── data/                    # 标签库 + 岗位分类体系 + 演示数据
+├── config/                  # llm_config.json 与部署配置
+├── docs/                    # API 参考与项目文档
 ├── scripts/                 # 辅助脚本：演示数据写入、示例简历生成、爬虫冒烟测试
-├── interview_agent.py       # AI 面试模块
-├── resume_parser.py         # 简历解析
-├── tag_rate.py              # 技能评分
-├── llm_client.py            # LLM 客户端
-├── tech_taxonomy.json       # 岗位分类体系
-├── all_labels.csv           # 技能标签库
+├── tests/                   # pytest 测试
+├── pyproject.toml
 └── requirements.txt
 ```
 

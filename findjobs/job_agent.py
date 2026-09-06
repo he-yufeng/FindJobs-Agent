@@ -51,9 +51,9 @@ except ImportError as exc:  # pragma: no cover
 # --- 全局默认配置 ---
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_JOBS_FILE = ROOT_DIR / "bytedance_jobs copy.json"
-DEFAULT_LABELS_FILE = ROOT_DIR / "all_labels.csv"
+DEFAULT_LABELS_FILE = ROOT_DIR / "data" / "all_labels.csv"
 DEFAULT_USER_DESC_FILE = ROOT_DIR / "user_descriptions.csv"
-DEFAULT_TAXONOMY_FILE = ROOT_DIR / "tech_taxonomy.json"
+DEFAULT_TAXONOMY_FILE = ROOT_DIR / "data" / "tech_taxonomy.json"
 DEFAULT_OUTPUT_FILE = ROOT_DIR / "bytedance_jobs_enriched.csv"
 DEFAULT_API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
 

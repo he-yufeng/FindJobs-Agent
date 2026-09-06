@@ -34,7 +34,7 @@ from .llm_client import LLMClient
 
 # 配置
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_LABELS_FILE = ROOT_DIR / "all_labels.csv"
+DEFAULT_LABELS_FILE = ROOT_DIR / "data" / "all_labels.csv"
 DEFAULT_API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
 
 _TAG_SCORE_RE = re.compile(r"([^:：\s]+?)\s*[:：]\s*([1-5])(?=\s|$)")
