@@ -20,7 +20,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 # silence noisy crawler logging during smoke test
 logging.basicConfig(level=logging.ERROR)
 
-import job_crawler
+import findjobs.job_crawler as job_crawler
 
 CRAWLERS = job_crawler.CRAWLER_REGISTRY
 MAX_CALLS_PER_CRAWLER = 2

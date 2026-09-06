@@ -7,7 +7,7 @@ import uuid
 import pandas as pd
 import pytest
 
-import storage
+import findjobs.storage as storage
 
 
 def _row(i: int) -> dict:
@@ -77,7 +77,7 @@ def test_import_csv_migrates_rows(tmp_path):
 
 @pytest.fixture()
 def api(tmp_path, monkeypatch):
-    import api_server
+    import findjobs.api_server as api_server
 
     monkeypatch.setattr(api_server, "ROOT_DIR", tmp_path)
     api_server.app.config["TESTING"] = True

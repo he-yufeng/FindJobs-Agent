@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pandas as pd
 
-import pipeline
-import storage
+import findjobs.pipeline as pipeline
+import findjobs.storage as storage
 
 
 def _write_raw(root: Path, ids: list[str]) -> None:

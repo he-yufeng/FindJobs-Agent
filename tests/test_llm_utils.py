@@ -1,4 +1,4 @@
-from llm_utils import apply_temperature_strategy, supports_temperature
+from findjobs.llm_utils import apply_temperature_strategy, supports_temperature
 
 
 def test_standard_models_support_temperature():

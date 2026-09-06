@@ -34,11 +34,11 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 import pandas as pd
 import requests
 
-from llm_utils import apply_temperature_strategy
+from .llm_utils import apply_temperature_strategy
 
 try:
     # 直接复用 tag_rate 中的 API Key 管理器与评分规则，保证一致性
-    from tag_rate import (
+    from .tag_rate import (
         APIKeyManager,
         COMMON_SCORING_RULES_V4,
         format_tags_for_csv,
@@ -49,7 +49,7 @@ except ImportError as exc:  # pragma: no cover
 
 
 # --- 全局默认配置 ---
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_JOBS_FILE = ROOT_DIR / "bytedance_jobs copy.json"
 DEFAULT_LABELS_FILE = ROOT_DIR / "all_labels.csv"
 DEFAULT_USER_DESC_FILE = ROOT_DIR / "user_descriptions.csv"

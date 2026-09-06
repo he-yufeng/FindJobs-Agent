@@ -12,19 +12,20 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 import re
 
 try:
-    from tag_rate import APIKeyManager, load_api_keys
+    from .tag_rate import APIKeyManager, load_api_keys
 except ImportError:
     logging.error("Failed to import tag_rate module")
     raise
 
 # Configuration & unified LLM client
-ROOT_DIR = __import__('pathlib').Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
-from llm_client import LLMClient
+from .llm_client import LLMClient
 
 
 @dataclass

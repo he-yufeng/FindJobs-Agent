@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from interview_agent import InterviewAgent
+from findjobs.interview_agent import InterviewAgent
 
 
 def _agent() -> InterviewAgent:
