@@ -1,4 +1,4 @@
-from job_agent import (
+from findjobs.job_agent import (
     deduplicate,
     format_skill_string,
     normalize_text,

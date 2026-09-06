@@ -1,4 +1,4 @@
-from job_matcher import JobMatcher
+from findjobs.job_matcher import JobMatcher
 
 
 def test_parse_job_skills_accepts_pipeline_formats():

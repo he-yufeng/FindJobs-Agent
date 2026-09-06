@@ -11,7 +11,7 @@ import sqlite3
 
 import pytest
 
-import storage
+import findjobs.storage as storage
 
 
 @pytest.fixture()
@@ -192,7 +192,7 @@ def _wire(module, root):
 
 
 def test_resume_and_interview_survive_restart(tmp_path):
-    import api_server
+    import findjobs.api_server as api_server
 
     client = _wire(api_server, tmp_path)
 
@@ -251,7 +251,7 @@ def test_resume_and_interview_survive_restart(tmp_path):
 
 
 def test_unknown_resume_and_session_still_404(tmp_path):
-    import api_server
+    import findjobs.api_server as api_server
 
     client = _wire(api_server, tmp_path)
 

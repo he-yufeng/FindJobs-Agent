@@ -1,8 +1,8 @@
 import json
 import pytest
 
-import storage
-from api_server import app
+import findjobs.storage as storage
+from findjobs.api_server import app
 
 
 @pytest.fixture()
@@ -41,7 +41,7 @@ def test_load_applications_missing_db_is_empty(tmp_path):
 
 @pytest.fixture()
 def client(tmp_path, monkeypatch):
-    monkeypatch.setattr("api_server.ROOT_DIR", tmp_path)
+    monkeypatch.setattr("findjobs.api_server.ROOT_DIR", tmp_path)
     app.config["TESTING"] = True
     with app.test_client() as c:
         yield c

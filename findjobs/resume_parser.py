@@ -20,7 +20,7 @@ import pandas as pd
 import PyPDF2
 
 try:
-    from tag_rate import (
+    from .tag_rate import (
         APIKeyManager,
         COMMON_SCORING_RULES_V4,
         load_api_keys,
@@ -30,10 +30,10 @@ except ImportError:
     logging.error("无法导入 tag_rate 模块，请确保 tag_rate.py 在同一目录")
     raise
 
-from llm_client import LLMClient
+from .llm_client import LLMClient
 
 # 配置
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_LABELS_FILE = ROOT_DIR / "all_labels.csv"
 DEFAULT_API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
 

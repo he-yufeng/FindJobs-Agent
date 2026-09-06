@@ -20,10 +20,10 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
-import storage
-from resume_parser import ResumeParser
-from job_matcher import JobMatcher
-from interview_agent import InterviewAgent
+from . import storage
+from .resume_parser import ResumeParser
+from .job_matcher import JobMatcher
+from .interview_agent import InterviewAgent
 
 # 配置日志
 logging.basicConfig(
@@ -37,7 +37,7 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(32).hex())
 CORS(app)  # 允许跨域请求
 
 # 配置
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_FOLDER = ROOT_DIR / 'uploads'
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 ALLOWED_EXTENSIONS = {'pdf'}
@@ -60,7 +60,7 @@ def enable_demo_mode() -> bool:
     """Route every LLM call through the offline stub. Returns whether demo is on."""
     if not demo_mode_on():
         return False
-    from demo_llm import DemoLLM
+    from .demo_llm import DemoLLM
     stub = DemoLLM()
     resume_parser.llm = stub
     interview_agent.llm = stub

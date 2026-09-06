@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-import api_server
-import storage
-from demo_llm import DemoLLM
+import findjobs.api_server as api_server
+import findjobs.storage as storage
+from findjobs.demo_llm import DemoLLM
 from scripts.seed_demo_data import load_sample_jobs, seed_demo_data
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,10 +28,10 @@ def _no_network(*args, **kwargs):
 def demo_client(tmp_path, monkeypatch):
     monkeypatch.setenv("FINDJOBS_DEMO", "1")
     monkeypatch.setattr("requests.post", _no_network)
-    monkeypatch.setattr("api_server.ROOT_DIR", tmp_path)
+    monkeypatch.setattr("findjobs.api_server.ROOT_DIR", tmp_path)
     upload_dir = tmp_path / "uploads"
     upload_dir.mkdir()
-    monkeypatch.setattr("api_server.UPLOAD_FOLDER", upload_dir)
+    monkeypatch.setattr("findjobs.api_server.UPLOAD_FOLDER", upload_dir)
     monkeypatch.setattr(api_server.resume_parser, "llm", DemoLLM())
     monkeypatch.setattr(api_server.interview_agent, "llm", DemoLLM())
     api_server.jobs_store.clear()

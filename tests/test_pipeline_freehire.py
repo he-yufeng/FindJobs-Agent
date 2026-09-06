@@ -4,7 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 
-import pipeline
+import findjobs.pipeline as pipeline
 
 
 def _fake_run_factory(root: Path, calls: list):

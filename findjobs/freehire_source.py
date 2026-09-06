@@ -19,11 +19,11 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
-from job_crawler_v2 import JobCrawlerBase, MAX_JOBS_PER_COMPANY
+from .job_crawler_v2 import JobCrawlerBase, MAX_JOBS_PER_COMPANY
 
 logger = logging.getLogger(__name__)
 
-ROOT_DIR = Path(__file__).parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 FREEHIRE_BASE_URL = 'https://freehire.me/api/v1'
 

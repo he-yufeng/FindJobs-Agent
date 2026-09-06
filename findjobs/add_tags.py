@@ -10,7 +10,7 @@ from threading import Lock
 import pandas as pd
 import requests
 
-ROOT_DIR = Path(__file__).resolve().parent
+ROOT_DIR = Path(__file__).resolve().parent.parent
 API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
 
 

@@ -10,11 +10,11 @@ import os
 import sys
 
 # 确保项目根目录在 sys.path 中
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from api_server import app
+from .api_server import app
 from flask import send_from_directory
 
 # 前端静态文件目录
