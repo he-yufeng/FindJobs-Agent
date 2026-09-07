@@ -1329,60 +1329,57 @@ class ByteDanceAPICrawler(JobCrawlerBase):
         return "字节跳动"
     
     def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name} (尝试API)...")
-        # 尝试字节的API
+        logger.info(f"🚀 {self.company_name} (公开职位 API)...")
+        # 字节招聘官网的公开职位 API（POST 分页）；旧 GET 形式已失效
         offset = 0
         while not self._should_stop():
             url = "https://jobs.bytedance.com/api/v1/search/job/posts"
-            params = {'offset': offset, 'limit': 50, 'keyword': ''}
-            resp = self._request(url, params=params)
-            if not resp:
-                # API失败，从文件加载
-                return self._load_from_file()
+            payload = {
+                "keyword": "",
+                "limit": 50,
+                "offset": offset,
+                "job_category_id_list": [],
+                "location_code_list": [],
+                "subject_id_list": [],
+                "recruitment_id_list": [],
+                "portal_type": 2,
+                "job_function_id_list": [],
+                "portal_entrance": 1,
+            }
             try:
+                resp = requests.post(
+                    url, json=payload, headers=self._headers(), timeout=20, verify=False
+                )
                 data = resp.json()
-                jobs = data.get('data', {}).get('job_post_list', [])
-                if not jobs:
-                    if not self.jobs:
-                        return self._load_from_file()
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('title', ''),
-                        'job_id': job.get('id', ''),
-                        'category': job.get('recruit_type', {}).get('name', ''),
-                        'location': job.get('city', {}).get('name', ''),
-                        'job_type': job.get('job_category', {}).get('name', ''),
-                        'job_description': job.get('description', ''),
-                        'job_requirements': job.get('requirement', ''),
-                        'apply_url': f"https://jobs.bytedance.com/position/{job.get('id', '')}",
-                    }))
-                offset += 50
-            except:
-                if not self.jobs:
-                    return self._load_from_file()
+            except Exception as e:
+                logger.warning(f"  API 调用失败（{e}），停止本轮")
                 break
+            jobs = data.get('data', {}).get('job_post_list', [])
+            if not jobs:
+                break
+            for job in jobs:
+                if self._should_stop():
+                    break
+                city = job.get('city_info', {}) or {}
+                self.jobs.append(self._normalize_job({
+                    'job_title': job.get('title', ''),
+                    'job_id': f"BD_{job.get('id', '')}",
+                    'category': job.get('recruit_type', {}).get('name', ''),
+                    'location': city.get('name', '') or job.get('city', {}).get('name', ''),
+                    'job_type': job.get('job_category', {}).get('name', ''),
+                    'job_description': job.get('description', ''),
+                    'job_requirements': job.get('requirement', ''),
+                    'apply_url': f"https://jobs.bytedance.com/position/{job.get('id', '')}",
+                }))
+            offset += 50
         logger.info(f"  └─ {len(self.jobs)} 个")
         return self.jobs
     
-    def _load_from_file(self) -> List[Dict]:
-        """从文件加载"""
-        for fname in ['bytedance_jobs.json', 'bytedance_jobs copy.json']:
-            fpath = ROOT_DIR / fname
-            if fpath.exists():
-                try:
-                    with open(fpath, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    for item in data[:self.max_jobs]:
-                        self.jobs.append(self._normalize_job(item))
-                    logger.info(f"  └─ {len(self.jobs)} 个 (从文件)")
-                    return self.jobs
-                except:
-                    pass
-        logger.warning("  └─ 0 个")
-        return []
+    def _headers(self) -> Dict[str, str]:
+        return {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+            'Content-Type': 'application/json',
+        }
 
 
 # ==================== 招聘平台 ====================
