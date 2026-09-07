@@ -926,10 +926,28 @@ class JobAgent:
                 logging.exception("岗位 %s 处理失败：%s", job_id, err)
                 return idx, {**job, **self._empty_result(job_id)}, err
         
-        # 准备任务列表
-        tasks = [(idx, job) for idx, job in enumerate(jobs, start=1)]
+        # 准备任务列表（有检查点则跳过已完成岗位，崩溃续跑不重复花 token）
+        ckpt_path = output_path.with_suffix('.checkpoint.jsonl')
+        done_by_id: Dict[str, Dict[str, Any]] = {}
+        if ckpt_path.exists():
+            with open(ckpt_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        row = json.loads(line)
+                        done_by_id[str(row.get('job_id', ''))] = row
+            if done_by_id:
+                logging.info(f"♻️ 检查点恢复 {len(done_by_id)} 条已完成岗位")
+
+        tasks = []
         results_dict = {}
-        completed_count = 0
+        for idx, job in enumerate(jobs, start=1):
+            job_id = str(job.get("job_id") or f"JOB_{idx}")
+            if job_id in done_by_id:
+                results_dict[idx] = done_by_id[job_id]
+            else:
+                tasks.append((idx, job))
+        completed_count = len(results_dict)
         
         # 使用线程池并行处理
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -951,9 +969,13 @@ class JobAgent:
                 else:
                     logging.info("✅ 完成岗位 %s (%s/%s)", job_id, completed_count, total_jobs)
                 
-                # 每处理 10 个岗位输出一次进度
+                # 每处理 10 个岗位输出一次进度；每 25 个落一次检查点，崩溃不丢整批
                 if completed_count % 10 == 0:
                     logging.info(f"📊 进度：{completed_count}/{total_jobs} ({completed_count*100//total_jobs}%)")
+                if completed_count % 25 == 0:
+                    with open(ckpt_path, 'w', encoding='utf-8') as f:
+                        for i in sorted(results_dict):
+                            f.write(json.dumps(results_dict[i], ensure_ascii=False) + '\n')
         
         # 按原始顺序整理结果
         results = [results_dict[idx] for idx in sorted(results_dict.keys())]
