@@ -7,10 +7,21 @@ from pathlib import Path
 import findjobs.pipeline as pipeline
 
 
+def _script_name(cmd: list) -> str:
+    """Resolve the invoked script from a subprocess cmd.
+
+    Steps call package modules as ``python -m findjobs.x``, so the identity
+    sits in cmd[2]; keep the old ``python path/to/x.py`` shape working too.
+    """
+    if len(cmd) > 2 and cmd[1] == '-m':
+        return cmd[2].split('.')[-1] + '.py'
+    return Path(cmd[1]).name
+
+
 def _fake_run_factory(root: Path, calls: list):
     def fake_run(cmd, **_kwargs):
         calls.append(cmd)
-        script = Path(cmd[1]).name
+        script = _script_name(cmd)
         if script == 'job_crawler_v2.py':
             (root / 'crawled_jobs_raw.json').write_text(
                 json.dumps([{'company_name': '腾讯', 'job_id': 'TC_1'}], ensure_ascii=False),
@@ -56,7 +67,7 @@ def test_freehire_merged_when_enabled(tmp_path, monkeypatch):
     assert ids == {('腾讯', 'TC_1'), ('Acme', 'FH_x')}
 
     fh_cmd = calls[1]
-    assert Path(fh_cmd[1]).name == 'freehire_source.py'
+    assert _script_name(fh_cmd) == 'freehire_source.py'
     assert '-q' in fh_cmd and 'backend' in fh_cmd
     assert '-m' in fh_cmd and '100' in fh_cmd
 
@@ -65,7 +76,7 @@ def test_freehire_failure_keeps_company_jobs(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, 'ROOT_DIR', tmp_path)
 
     def fake_run(cmd, **_kwargs):
-        script = Path(cmd[1]).name
+        script = _script_name(cmd)
         if script == 'job_crawler_v2.py':
             (tmp_path / 'crawled_jobs_raw.json').write_text(
                 json.dumps([{'company_name': '腾讯', 'job_id': 'TC_1'}], ensure_ascii=False),
