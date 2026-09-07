@@ -133,6 +133,23 @@ python freehire_source.py --list-facets skills                # live filter voca
 
 Filter vocabularies are read from `/api/v1/jobs/facets` at runtime instead of being hardcoded.
 
+### Job data sources
+
+The crawler knows 32 companies (`--list`), all fetched through the public job APIs that each careers site serves to job seekers. No login, no key, no page scraping behind a wall.
+
+As of the last refresh (2026-09), four sources are live and verified:
+
+| Source | Endpoint | Notes |
+|--------|----------|-------|
+| Tencent (腾讯) | `careers.tencent.com` query API | up to 400 per pull |
+| ByteDance (字节跳动) | `jobs.bytedance.com` portal API | moved to the current POST payload; the old GET form is gone |
+| NetEase (网易) | public search API | social + campus |
+| Amazon | `amazon.jobs` search API | global, CN filter supported |
+
+`data/latest_jobs.json` holds the latest snapshot: 1,187 postings across these four, committed so the pipeline has real data to chew on without a fresh crawl.
+
+The other adapters (Baidu, Kuaishou, Xiaomi, Bilibili, DiDi, Pinduoduo, Huawei, Ctrip, DJI, NIO, XPeng, Li Auto, OPPO, VIVO, SenseTime, MiHoYo, SHEIN, Shopee, KE, Yuanfudao, Zuoyebang, Zhilian, Lagou, Microsoft, Google) were written against 2023-era endpoints that have since changed shape or started blocking plain requests; they currently return empty and need an adapter refresh. Alibaba, Meituan and JD go through `job_crawler_selenium.py` and want a local browser driver. If you rely on one of these, open an issue and it moves up the queue.
+
 ## API Endpoints
 
 | Endpoint | Method | Description |
