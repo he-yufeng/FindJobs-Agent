@@ -17,6 +17,14 @@ def test_gpt_5_mini_still_unsupported():
     assert supports_temperature("gpt-5-mini") is False
 
 
+def test_vendor_prefixed_exact_set_member_still_unsupported():
+    # "openai/gpt-5-mini" must behave like "gpt-5-mini": the exact-name set
+    # used to be checked before the vendor prefix was stripped, so the
+    # prefixed form slipped through and temperature got sent to a model that
+    # rejects it.
+    assert supports_temperature("openai/gpt-5-mini") is False
+
+
 def test_vendor_prefix_is_stripped_before_checking_family():
     assert supports_temperature("openai/o1-mini") is False
     assert supports_temperature("OpenAI/GPT-4o") is True

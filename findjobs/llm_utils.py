@@ -22,10 +22,12 @@ def _normalize_model_name(model: Optional[str]) -> str:
 def supports_temperature(model: Optional[str]) -> bool:
     """Return True if the model accepts the temperature parameter."""
     name = _normalize_model_name(model)
-    if name in TEMPERATURE_UNSUPPORTED_MODELS:
-        return False
-    # Drop a vendor prefix like "openai/o1-mini" before checking the family.
+    # Compare the bare id (vendor prefix dropped) against both the exact set
+    # and the reasoning-family prefixes, so "openai/gpt-5-mini" is treated the
+    # same as "gpt-5-mini".
     bare = name.split("/")[-1]
+    if bare in TEMPERATURE_UNSUPPORTED_MODELS:
+        return False
     return not any(
         bare == prefix or bare.startswith(f"{prefix}-")
         for prefix in _TEMPERATURE_UNSUPPORTED_PREFIXES

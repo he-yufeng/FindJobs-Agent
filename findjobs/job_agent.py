@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import os
 import re
 import threading
 import time
@@ -57,7 +58,7 @@ DEFAULT_TAXONOMY_FILE = ROOT_DIR / "data" / "tech_taxonomy.json"
 DEFAULT_OUTPUT_FILE = ROOT_DIR / "bytedance_jobs_enriched.csv"
 DEFAULT_API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
 
-API_URL = "https://api.openai.com/v1/chat/completions"
+API_URL = os.getenv("LLM_API_URL", "https://api.openai.com/v1/chat/completions")
 DEFAULT_MODEL = "gpt-5-mini"  # 与 tag_rate 保持一致，避免模型名不被支持
 REQUEST_TIMEOUT = 120
 MAX_LLM_RETRY = 3
