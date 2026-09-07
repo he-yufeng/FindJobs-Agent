@@ -14,7 +14,7 @@ def test_labels_csv_is_tracked_and_parses():
         rows = list(csv.DictReader(fh))
     # self-authored reference library (replaces the scraped dataset): smaller
     # but must cover the main stacks and stay schema-compatible
-    assert len(rows) >= 30
+    assert len(rows) >= 150
     assert {"level_3rd", "skill_type", "tags"} <= set(rows[0])
     assert all(row["tags"].strip() for row in rows)
     assert all(row["level_3rd"].strip() for row in rows)
