@@ -1,0 +1,429 @@
+{
+  "version": "2026-09-07",
+  "level1_categories": [
+    {
+      "name": "算法",
+      "description": "机器学习、深度学习与大模型相关的算法岗位",
+      "level2_roles": [
+        {
+          "name": "机器学习工程师",
+          "description": ""
+        },
+        {
+          "name": "深度学习工程师",
+          "description": ""
+        },
+        {
+          "name": "NLP 算法工程师",
+          "description": ""
+        },
+        {
+          "name": "CV 算法工程师",
+          "description": ""
+        },
+        {
+          "name": "推荐算法工程师",
+          "description": ""
+        },
+        {
+          "name": "强化学习工程师",
+          "description": ""
+        },
+        {
+          "name": "LLM 工程师",
+          "description": ""
+        },
+        {
+          "name": "多模态算法工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "后端",
+      "description": "服务端与业务系统开发岗位",
+      "level2_roles": [
+        {
+          "name": "Java 后端工程师",
+          "description": ""
+        },
+        {
+          "name": "Python 后端工程师",
+          "description": ""
+        },
+        {
+          "name": "Go 后端工程师",
+          "description": ""
+        },
+        {
+          "name": "C++ 工程师",
+          "description": ""
+        },
+        {
+          "name": "Node.js 后端工程师",
+          "description": ""
+        },
+        {
+          "name": ".NET 工程师",
+          "description": ""
+        },
+        {
+          "name": "PHP 后端工程师",
+          "description": ""
+        },
+        {
+          "name": "Rust 工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "前端",
+      "description": "Web 前端与客户端界面开发岗位",
+      "level2_roles": [
+        {
+          "name": "React 前端工程师",
+          "description": ""
+        },
+        {
+          "name": "Vue 前端工程师",
+          "description": ""
+        },
+        {
+          "name": "TypeScript 工程师",
+          "description": ""
+        },
+        {
+          "name": "前端架构师",
+          "description": ""
+        },
+        {
+          "name": "小程序工程师",
+          "description": ""
+        },
+        {
+          "name": "WebGL 工程师",
+          "description": ""
+        },
+        {
+          "name": "桌面端工程师",
+          "description": ""
+        },
+        {
+          "name": "前端测试工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "移动",
+      "description": "iOS / Android / 跨端移动开发岗位",
+      "level2_roles": [
+        {
+          "name": "iOS 工程师",
+          "description": ""
+        },
+        {
+          "name": "Android 工程师",
+          "description": ""
+        },
+        {
+          "name": "Flutter 工程师",
+          "description": ""
+        },
+        {
+          "name": "React Native 工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "数据",
+      "description": "数据平台、数据工程与数据分析岗位",
+      "level2_roles": [
+        {
+          "name": "大数据工程师",
+          "description": ""
+        },
+        {
+          "name": "数据仓库工程师",
+          "description": ""
+        },
+        {
+          "name": "数据治理工程师",
+          "description": ""
+        },
+        {
+          "name": "实时计算工程师",
+          "description": ""
+        },
+        {
+          "name": "数据分析师",
+          "description": ""
+        },
+        {
+          "name": "BI 工程师",
+          "description": ""
+        },
+        {
+          "name": "埋点工程师",
+          "description": ""
+        },
+        {
+          "name": "数据产品经理",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "运维与基础设施",
+      "description": "云原生、SRE 与基础设施岗位",
+      "level2_roles": [
+        {
+          "name": "Kubernetes 工程师",
+          "description": ""
+        },
+        {
+          "name": "云工程师",
+          "description": ""
+        },
+        {
+          "name": "DevOps 工程师",
+          "description": ""
+        },
+        {
+          "name": "SRE",
+          "description": ""
+        },
+        {
+          "name": "网络工程师",
+          "description": ""
+        },
+        {
+          "name": "存储工程师",
+          "description": ""
+        },
+        {
+          "name": "数据库工程师",
+          "description": ""
+        },
+        {
+          "name": "中间件工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "安全",
+      "description": "应用安全、攻防与合规岗位",
+      "level2_roles": [
+        {
+          "name": "安全工程师",
+          "description": ""
+        },
+        {
+          "name": "渗透测试工程师",
+          "description": ""
+        },
+        {
+          "name": "安全开发工程师",
+          "description": ""
+        },
+        {
+          "name": "数据安全工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "测试",
+      "description": "自动化、性能与质量保障岗位",
+      "level2_roles": [
+        {
+          "name": "自动化测试工程师",
+          "description": ""
+        },
+        {
+          "name": "性能测试工程师",
+          "description": ""
+        },
+        {
+          "name": "测试开发工程师",
+          "description": ""
+        },
+        {
+          "name": "接口测试工程师",
+          "description": ""
+        },
+        {
+          "name": "移动端测试工程师",
+          "description": ""
+        },
+        {
+          "name": "游戏测试工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "产品",
+      "description": "产品设计、规划与商业化岗位",
+      "level2_roles": [
+        {
+          "name": "产品经理",
+          "description": ""
+        },
+        {
+          "name": "B 端产品经理",
+          "description": ""
+        },
+        {
+          "name": "C 端产品经理",
+          "description": ""
+        },
+        {
+          "name": "AI 产品经理",
+          "description": ""
+        },
+        {
+          "name": "商业化产品经理",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "设计",
+      "description": "交互、视觉与品牌设计岗位",
+      "level2_roles": [
+        {
+          "name": "交互设计师",
+          "description": ""
+        },
+        {
+          "name": "视觉设计师",
+          "description": ""
+        },
+        {
+          "name": "UI 设计师",
+          "description": ""
+        },
+        {
+          "name": "品牌设计师",
+          "description": ""
+        },
+        {
+          "name": "动效设计师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "量化与金融",
+      "description": "量化研究、交易与金融工程岗位",
+      "level2_roles": [
+        {
+          "name": "量化研究员",
+          "description": ""
+        },
+        {
+          "name": "量化交易员",
+          "description": ""
+        },
+        {
+          "name": "量化风控",
+          "description": ""
+        },
+        {
+          "name": "做市商交易员",
+          "description": ""
+        },
+        {
+          "name": "基本面量化",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "嵌入式与底层",
+      "description": "嵌入式、IoT、芯片与系统软件岗位",
+      "level2_roles": [
+        {
+          "name": "嵌入式工程师",
+          "description": ""
+        },
+        {
+          "name": "IoT 工程师",
+          "description": ""
+        },
+        {
+          "name": "汽车电子工程师",
+          "description": ""
+        },
+        {
+          "name": "芯片工程师",
+          "description": ""
+        },
+        {
+          "name": "操作系统工程师",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "游戏",
+      "description": "游戏客户端、服务器与策划美术岗位",
+      "level2_roles": [
+        {
+          "name": "游戏客户端工程师",
+          "description": ""
+        },
+        {
+          "name": "游戏服务器工程师",
+          "description": ""
+        },
+        {
+          "name": "游戏策划",
+          "description": ""
+        },
+        {
+          "name": "游戏美术",
+          "description": ""
+        },
+        {
+          "name": "技术美术",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "新兴技术",
+      "description": "区块链、XR、机器人与其他新兴方向",
+      "level2_roles": [
+        {
+          "name": "区块链工程师",
+          "description": ""
+        },
+        {
+          "name": "AR/VR 工程师",
+          "description": ""
+        },
+        {
+          "name": "机器人工程师",
+          "description": ""
+        },
+        {
+          "name": "GIS 工程师",
+          "description": ""
+        },
+        {
+          "name": "音视频工程师",
+          "description": ""
+        },
+        {
+          "name": "搜索工程师",
+          "description": ""
+        }
+      ]
+    }
+  ]
+}
