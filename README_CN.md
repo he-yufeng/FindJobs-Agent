@@ -146,7 +146,7 @@ python freehire_source.py --list-facets skills                # 查看实时筛�
 | 网易 | 公开搜索 API | 社招 + 校招 |
 | Amazon | `amazon.jobs` 搜索 API | 全球岗位，支持按国家过滤 |
 
-`data/latest_jobs.json` 是最近一次抓取的快照，共 1,187 条岗位（以上 4 家），已提交进仓库，不重新爬也有真实数据可跑。
+`data/latest_jobs.json` 是最近一次抓取的快照，共 1,187 条岗位（以上 4 家），已提交进仓库，不重新爬也有真实数据可跑。`data/latest_enriched.jsonl` 是同一批岗位跑完 LLM 分析的结果（学历、专业要求、带评分的技能标签、岗位族分类），网站和匹配开箱即用，零 API 花费。
 
 其余适配器（百度、快手、小米、哔哩哔哩、滴滴、拼多多、华为、携程、大疆、蔚来、小鹏、理想、OPPO、VIVO、商汤、米哈游、SHEIN、Shopee、贝壳、猿辅导、作业帮、智联、拉勾、Microsoft、Google）是照 2023 年的接口写的，这两年对方接口改了形态或开始拦裸请求，目前返回为空，需要逐个刷新适配。阿里、美团、京东走 `job_crawler_selenium.py`，要本机浏览器驱动。你正好需要其中某家，开个 issue，我优先修。
 
