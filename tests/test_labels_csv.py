@@ -12,6 +12,12 @@ def test_labels_csv_is_tracked_and_parses():
     )
     with LABELS_CSV.open(encoding="utf-8-sig", newline="") as fh:
         rows = list(csv.DictReader(fh))
-    assert len(rows) > 4000
+    # self-authored reference library (replaces the scraped dataset): smaller
+    # but must cover the main stacks and stay schema-compatible
+    assert len(rows) >= 30
     assert {"level_3rd", "skill_type", "tags"} <= set(rows[0])
-    assert all(row["tags"].strip() for row in rows[:100])
+    assert all(row["tags"].strip() for row in rows)
+    assert all(row["level_3rd"].strip() for row in rows)
+    joined = " ".join(row["tags"] for row in rows)
+    for must_have in ("Python", "Kubernetes", "PyTorch", "RAG"):
+        assert must_have in joined
