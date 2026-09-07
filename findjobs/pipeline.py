@@ -83,7 +83,7 @@ def _crawl_freehire(options: Dict[str, Any], raw_file: Path) -> None:
     freehire_file = ROOT_DIR / 'freehire_jobs_raw.json'
     cmd = [
         sys.executable,
-        str(ROOT_DIR / 'freehire_source.py'),
+        '-m', 'findjobs.freehire_source',
         '-f', str(freehire_file),
         '-m', str(options.get('max_jobs') or 300),
     ]
@@ -133,7 +133,7 @@ def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[D
 
     cmd = [
         sys.executable,
-        str(ROOT_DIR / 'job_crawler_v2.py'),
+        '-m', 'findjobs.job_crawler_v2',
         '-f', 'crawled_jobs_raw.json'
     ]
 
@@ -218,10 +218,10 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None, reanalyze_all: bool =
     
     output_file = ROOT_DIR / 'jobs_enriched.csv'
     
-    # 调用 job_agent.py 进行智能分析
+    # 调用 job_agent 进行智能分析
     cmd = [
         sys.executable,
-        str(ROOT_DIR / 'job_agent.py'),
+        '-m', 'findjobs.job_agent',
         '--jobs-file', str(input_file),
         '--output-file', str(output_file),
         '--min-skills', '3',
