@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "findjobs-agent"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "LLM-powered job toolkit: skill gap analysis, mock interviews, resume optimization, and job structuring"
 readme = "README.md"
 requires-python = ">=3.10"
