@@ -26,6 +26,7 @@ ENV/
 # ==================== 数据文件 (大型/生成的) ====================
 # 爬取的原始数据
 crawled_jobs_raw*.json
+freehire_jobs_raw*.json
 all_jobs*.json
 tech_giants_jobs.json
 bytedance_selenium_test.json

@@ -131,6 +131,8 @@ python freehire_source.py -q "ml engineer" --skills python,pytorch --countries u
 python freehire_source.py --list-facets skills                # live filter vocabulary (skill slugs, country codes)
 ```
 
+**Pluggable job sources.** Crawlers, third-party APIs, and local JSON files all enter through one `JobSource` interface (`findjobs/job_source.py`): implement `name` + `fetch()` returning canonical job dicts, then `register_source(...)` — no pipeline edits. The pipeline walks the registry (`company crawlers` by default, `freehire` when enabled), dedupes across sources, and `pipeline.step1_crawl_jobs(sources=[...])` accepts a full replacement list for custom feeds.
+
 Filter vocabularies are read from `/api/v1/jobs/facets` at runtime instead of being hardcoded.
 
 ### Job data sources

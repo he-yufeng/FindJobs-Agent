@@ -78,83 +78,38 @@ def _export_full_csv() -> None:
         logger.warning(f"   - 回写全量 CSV 失败（不影响 jobs.db）: {exc}")
 
 
-def _crawl_freehire(options: Dict[str, Any], raw_file: Path) -> None:
-    """可选追加：拉 freehire.me 聚合源，合并进原始数据（同一 schema，按 公司+job_id 去重）"""
-    freehire_file = ROOT_DIR / 'freehire_jobs_raw.json'
-    cmd = [
-        sys.executable,
-        '-m', 'findjobs.freehire_source',
-        '-f', str(freehire_file),
-        '-m', str(options.get('max_jobs') or 300),
-    ]
-    if options.get('query'):
-        cmd += ['-q', options['query']]
-    if options.get('skills'):
-        cmd += ['--skills', options['skills']]
-    if options.get('countries'):
-        cmd += ['--countries', options['countries']]
-
-    logger.info(f"运行 freehire 源: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=str(ROOT_DIR))
-    if result.returncode != 0 or not freehire_file.exists():
-        logger.warning("⚠️  freehire 源拉取失败，只用公司爬虫的结果继续")
-        return
-    _merge_jobs_file(raw_file, freehire_file)
-
-
-def _merge_jobs_file(raw_file: Path, extra_file: Path) -> int:
-    """把 extra_file 的岗位合并进 raw_file，按 (company_name, job_id) 去重。返回新增数"""
-    base = []
-    if raw_file.exists():
-        with open(raw_file, 'r', encoding='utf-8') as f:
-            base = json.load(f)
-    with open(extra_file, 'r', encoding='utf-8') as f:
-        extra = json.load(f)
-    seen = {(j.get('company_name', ''), j.get('job_id', '')) for j in base}
-    merged = list(base)
-    added = 0
-    for job in extra:
-        key = (job.get('company_name', ''), job.get('job_id', ''))
-        if key not in seen:
-            seen.add(key)
-            merged.append(job)
-            added += 1
-    with open(raw_file, 'w', encoding='utf-8') as f:
-        json.dump(merged, f, ensure_ascii=False, indent=2)
-    logger.info(f"   - freehire 源新增 {added} 个岗位（去重后共 {len(merged)} 个）")
-    return added
-
-
-def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None, sources: Optional[List] = None) -> Dict[str, Any]:
     """
     步骤1: 爬取原始岗位数据
+
+    数据源走 JobSource 注册表（findjobs/job_source.py）：默认公司爬虫组，
+    配置了 freehire 时追加聚合源；传 sources 可整体替换（用户自定义源）。
     """
     print_banner("步骤 1/3: 爬取原始岗位数据")
 
-    cmd = [
-        sys.executable,
-        '-m', 'findjobs.job_crawler_v2',
-        '-f', 'crawled_jobs_raw.json'
-    ]
+    from . import job_source as job_source_mod
 
-    if companies:
-        cmd.extend(['-c'] + companies)
+    active = sources if sources is not None else job_source_mod.all_sources(
+        companies=companies, freehire=freehire, root=ROOT_DIR
+    )
 
-    logger.info(f"运行爬虫: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=str(ROOT_DIR))
+    jobs: List[Dict[str, Any]] = []
+    for source in active:
+        try:
+            jobs.extend(source.fetch())
+        except Exception as exc:
+            logger.warning(f"⚠️  {source.name} 源拉取失败，跳过: {exc}")
 
-    # 读取结果
-    raw_file = ROOT_DIR / 'crawled_jobs_raw.json'
-    if freehire:
-        _crawl_freehire(freehire, raw_file)
-    if raw_file.exists():
-        with open(raw_file, 'r', encoding='utf-8') as f:
-            jobs = json.load(f)
-        logger.info(f"✅ 爬取完成: {len(jobs)} 个原始岗位")
-        return {'success': True, 'count': len(jobs), 'file': str(raw_file)}
-    else:
-        logger.error("❌ 爬取失败: 未生成输出文件")
+    if not jobs:
+        logger.error("❌ 爬取失败: 所有源都没有产出")
         return {'success': False, 'count': 0}
+
+    jobs = job_source_mod.dedupe_jobs(jobs)
+    raw_file = ROOT_DIR / 'crawled_jobs_raw.json'
+    with open(raw_file, 'w', encoding='utf-8') as f:
+        json.dump(jobs, f, ensure_ascii=False, indent=2)
+    logger.info(f"✅ 爬取完成: {len(jobs)} 个原始岗位（{len(active)} 个源）")
+    return {'success': True, 'count': len(jobs), 'file': str(raw_file)}
 
 
 def step2_analyze_with_llm(max_jobs: Optional[int] = None, reanalyze_all: bool = False) -> Dict[str, Any]:

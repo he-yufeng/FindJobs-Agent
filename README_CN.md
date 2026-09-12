@@ -131,6 +131,8 @@ python freehire_source.py -q "ml engineer" --skills python,pytorch --countries u
 python freehire_source.py --list-facets skills                # 查看实时筛选词表（skill slug、国家码等）
 ```
 
+**数据源可插拔**。爬虫、第三方招聘 API、本地 JSON 文件统一走 `JobSource` 接口（`findjobs/job_source.py`）：实现 `name` + `fetch()` 返回统一 schema 的岗位字典，然后 `register_source(...)` 挂上即可，不用改 pipeline 代码。pipeline 只遍历注册表（默认公司爬虫组，开 `--freehire` 时追加聚合源），跨源自动去重；`pipeline.step1_crawl_jobs(sources=[...])` 也接受整体替换的自定义源列表。
+
 筛选词表（技能 slug、国家码、枚举值）运行时从 `/api/v1/jobs/facets` 拉取，代码里不硬编码。
 
 ### 岗位数据来源
