@@ -7,7 +7,6 @@ empty. It also works standalone from the repo root:
 """
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -16,12 +15,14 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import findjobs.storage as storage
+from findjobs.job_source import JsonFileSource
 
 SAMPLE_JOBS_FILE = ROOT / "data" / "sample_jobs.json"
 
 
 def load_sample_jobs() -> list[dict]:
-    return json.loads(SAMPLE_JOBS_FILE.read_text(encoding="utf-8"))
+    # 播种也走 JobSource 入口：demo 的 jobs.json 与爬虫、第三方 API 同一条路
+    return JsonFileSource(SAMPLE_JOBS_FILE).fetch()
 
 
 def seed_demo_data(db_path) -> int:

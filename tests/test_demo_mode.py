@@ -14,6 +14,7 @@ import pytest
 import findjobs.api_server as api_server
 import findjobs.storage as storage
 from findjobs.demo_llm import DemoLLM
+from findjobs.job_source import CANONICAL_KEYS
 from scripts.seed_demo_data import load_sample_jobs, seed_demo_data
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,8 +55,11 @@ def _upload_sample_resume(client):
 def test_seed_script_writes_sample_jobs(tmp_path):
     sample = load_sample_jobs()
     assert len(sample) >= 50
+    canonical = set(CANONICAL_KEYS)
     for row in sample:
-        assert not (set(row) - set(storage.JOB_COLUMNS)), row["job_id"]
+        # 行内容必须落在 db 列或统一 schema 内；canonicalize 会补齐缺省键
+        assert not (set(row) - set(storage.JOB_COLUMNS) - canonical), row["job_id"]
+        assert canonical <= set(row), row["job_id"]
         assert row["job_title"] and row["company_name"] and row["skill_tags"]
 
     db = tmp_path / "jobs.db"
