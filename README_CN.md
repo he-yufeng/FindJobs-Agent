@@ -16,6 +16,12 @@
 
 一个集成了岗位数据爬取、LLM 智能分析、简历解析和 AI 模拟面试的全栈求职辅助系统。
 
+<p align="center">
+  <img src="assets/full-journey-demo.gif" alt="全流程演示：爬取 → LLM 分析 → 技能缺口 → 模拟面试" width="100%">
+</p>
+
+<p align="center"><em>一条命令跑完整条链路，全程离线：54 个示例岗位爬取并结构化、简历×岗位技能缺口分析、一场带反馈报告的模拟面试。运行 <code>python examples/full_journey_demo.py</code> 即可复现。</em></p>
+
 ## 两分钟跑个演示（Demo 模式）
 
 不想先配 API Key，也能把整套流程完整跑一遍。Demo 模式完全离线：

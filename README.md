@@ -16,6 +16,12 @@
 
 A full-stack job search assistant that crawls postings from major tech companies, analyzes them with LLMs, parses your resume, and runs AI mock interviews — so you can focus on preparing, not sifting through job boards.
 
+<p align="center">
+  <img src="assets/full-journey-demo.gif" alt="Full journey: crawl → LLM analysis → skill gaps → mock interview" width="100%">
+</p>
+
+<p align="center"><em>The whole loop in one terminal run, offline: 54 sample postings crawled and structured, resume×job skill gaps, and a mock interview with a feedback report. Replay it with <code>python examples/full_journey_demo.py</code>.</em></p>
+
 ## Try It in 2 Minutes (Demo Mode)
 
 No API key? No problem. Demo mode runs the whole app offline:

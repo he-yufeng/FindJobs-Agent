@@ -82,6 +82,10 @@ class DemoLLM:
             return "ack"
         if '"greeting"' in user_prompt:
             return "greeting"
+        if "结构化招聘情报" in text:
+            return "job_analysis"
+        if "技能评审官" in text:
+            return "review_noop"
         logging.warning(f"demo LLM: unrecognized prompt, using generic reply: {text[:80]!r}")
         return "generic"
 
@@ -202,7 +206,9 @@ class DemoLLM:
         skills = [s.strip() for s in skills_raw.split(",") if s.strip() and s.strip() != "general software engineering"]
         if not skills:
             skills = ["项目经验"]
-        asked = len(re.findall(r"^-\s", user_prompt, re.MULTILINE))
+        # 只数 Previously asked questions 区块里的列表项，简历里的 "- " 行不算
+        asked_block = user_prompt.split("Previously asked questions:", 1)[-1] if "Previously asked questions:" in user_prompt else ""
+        asked = len(re.findall(r"^-\s", asked_block, re.MULTILINE))
         idx = asked % len(skills)
         question = _QUESTION_TEMPLATES[asked % len(_QUESTION_TEMPLATES)].format(skill=skills[idx])
         return json.dumps({
@@ -249,6 +255,58 @@ class DemoLLM:
             f"4) 岗位技能画像：建议对照岗位要求逐项自查，把回答中暴露的薄弱技能优先补齐，并准备一两个能体现深度的项目故事。\n\n"
             f"5) 学习建议：针对本次得分较低的问题重做梳理，形成文字稿后再做一次模拟面试，检验改进效果。"
         )
+
+    # ---------- job structuring (job_agent) ----------
+
+    def _job_analysis(self, system_prompt: str, user_prompt: str) -> str:
+        # candidate tags sit on the line right after the 候选技能标签 header
+        raw_tags: List[str] = []
+        if "【候选技能标签】" in user_prompt:
+            tag_area = user_prompt.split("【候选技能标签】", 1)[1]
+            tag_area = tag_area.split("\n", 1)[-1] if "\n" in tag_area else ""
+            tag_area = tag_area.split("【", 1)[0]
+            raw_tags = [t.strip() for t in re.split(r"[,，]", tag_area) if t.strip()]
+        try:
+            from .job_agent import LOW_INFORMATION_SKILLS
+        except Exception:
+            LOW_INFORMATION_SKILLS = {"AI", "人工智能", "技术", "数学", "计算机", "科研", "能力", "技能"}
+        tags = [t for t in raw_tags if t.replace(" ", "") not in LOW_INFORMATION_SKILLS]
+        picked = tags[:6] or raw_tags[:3]
+        score_seq = [5, 5, 4, 4, 4, 3]
+        skills = [{"name": t, "score": score_seq[i]} for i, t in enumerate(picked)]
+
+        level1, level2 = "", ""
+        if "【候选岗位族谱】" in user_prompt:
+            tax_area = user_prompt.split("【候选岗位族谱】", 1)[1]
+            tax_area = tax_area.split("\n", 1)[-1] if "\n" in tax_area else ""
+            tax_area = tax_area.split("【输出 JSON 结构】", 1)[0].strip()
+            try:
+                tax = json.loads(tax_area)
+                if tax:
+                    level1 = tax[0].get("level1", "")
+                    options = tax[0].get("level2_options") or []
+                    if options:
+                        level2 = options[0].get("name", "")
+            except Exception:
+                pass
+
+        degree = "本科"
+        job_block = user_prompt.split("### 岗位强度评估", 1)[0]
+        for d in ("博士", "硕士"):
+            if d in job_block:
+                degree = d
+                break
+
+        return json.dumps({
+            "min_degree": {"degree": degree, "priority": "必须"},
+            "major_requirement": {"text": "计算机、软件工程、人工智能、数学等相关专业", "priority": "优先"},
+            "skills": skills,
+            "job_family": {"level1": level1, "level2": level2},
+        }, ensure_ascii=False)
+
+    def _review_noop(self, system_prompt: str, user_prompt: str) -> str:
+        # empty reply = 无需调整，parse_llm_response 返回空，保持原评分
+        return ""
 
     def _generic(self, system_prompt: str, user_prompt: str) -> str:
         return "收到，我们继续。"
