@@ -139,13 +139,24 @@ python freehire_source.py --list-facets skills                # 查看实时筛�
 
 **数据源可插拔**。爬虫、第三方招聘 API、本地 JSON 文件统一走 `JobSource` 接口（`findjobs/job_source.py`）：实现 `name` + `fetch()` 返回统一 schema 的岗位字典，然后 `register_source(...)` 挂上即可，不用改 pipeline 代码。pipeline 只遍历注册表（默认公司爬虫组，开 `--freehire` 时追加聚合源），跨源自动去重；`pipeline.step1_crawl_jobs(sources=[...])` 也接受整体替换的自定义源列表。
 
+第三个内置源 [Remotive](https://remotive.com) 把覆盖面扩到全品类远程岗（公开 API 同样免 key）。与聚合适配器不同，它是不起子进程的直接 `JobSource`，自己实例化或挂进注册表都行：
+
+```python
+from findjobs.job_source import register_source
+from findjobs.remotive_source import RemotiveSource
+
+register_source(RemotiveSource(search="llm", category="software-dev", limit=100))
+# 或者整管线换源：
+# pipeline.step1_crawl_jobs(sources=[RemotiveSource(limit=100)])
+```
+
 筛选词表（技能 slug、国家码、枚举值）运行时从 `/api/v1/jobs/facets` 拉取，代码里不硬编码。
 
 ### 岗位数据来源
 
 爬虫收录了 32 家企业（`--list` 可查），全部走各家招聘官网面向求职者的公开职位 API，不需要登录、不需要 key、不绕反爬。
 
-最近一次全量刷新（2026-09）验证下来，4 家是活源：
+最近一次全量刷新（2026-09）验证下来，4 家定向爬虫是活源；Remotive 远程聚合源 2026-09-17 实测可用：
 
 | 来源 | 接口 | 说明 |
 |------|------|------|
@@ -153,6 +164,7 @@ python freehire_source.py --list-facets skills                # 查看实时筛�
 | 字节跳动 | `jobs.bytedance.com` 门户 API | 已切到现在的 POST 请求格式，旧的 GET 已失效 |
 | 网易 | 公开搜索 API | 社招 + 校招 |
 | Amazon | `amazon.jobs` 搜索 API | 全球岗位，支持按国家过滤 |
+| Remotive | `remotive.com/api/remote-jobs` | 免 key 远程岗聚合，JD 全文（HTML 已转纯文本）和申请链接一次给齐 |
 
 `data/latest_jobs.json` 是最近一次抓取的快照，共 1,187 条岗位（以上 4 家），已提交进仓库，不重新爬也有真实数据可跑。`data/latest_enriched.jsonl` 是同一批岗位跑完 LLM 分析的结果（学历、专业要求、带评分的技能标签、岗位族分类），网站和匹配开箱即用，零 API 花费。
 

@@ -139,13 +139,24 @@ python freehire_source.py --list-facets skills                # live filter voca
 
 **Pluggable job sources.** Crawlers, third-party APIs, and local JSON files all enter through one `JobSource` interface (`findjobs/job_source.py`): implement `name` + `fetch()` returning canonical job dicts, then `register_source(...)` — no pipeline edits. The pipeline walks the registry (`company crawlers` by default, `freehire` when enabled), dedupes across sources, and `pipeline.step1_crawl_jobs(sources=[...])` accepts a full replacement list for custom feeds.
 
+A third bundled source, [Remotive](https://remotive.com), widens coverage to general remote jobs (their public API also needs no key). Unlike the aggregator adapters it is a direct `JobSource` with no subprocess: instantiate it yourself or swap it into the registry:
+
+```python
+from findjobs.job_source import register_source
+from findjobs.remotive_source import RemotiveSource
+
+register_source(RemotiveSource(search="llm", category="software-dev", limit=100))
+# or take the whole pipeline over with a custom list:
+# pipeline.step1_crawl_jobs(sources=[RemotiveSource(limit=100)])
+```
+
 Filter vocabularies are read from `/api/v1/jobs/facets` at runtime instead of being hardcoded.
 
 ### Job data sources
 
 The crawler knows 32 companies (`--list`), all fetched through the public job APIs that each careers site serves to job seekers. No login, no key, no page scraping behind a wall.
 
-As of the last refresh (2026-09), four sources are live and verified:
+As of the last refresh (2026-09), four targeted crawlers are live; the Remotive remote-jobs source was verified live on 2026-09-17:
 
 | Source | Endpoint | Notes |
 |--------|----------|-------|
@@ -153,6 +164,7 @@ As of the last refresh (2026-09), four sources are live and verified:
 | ByteDance (字节跳动) | `jobs.bytedance.com` portal API | moved to the current POST payload; the old GET form is gone |
 | NetEase (网易) | public search API | social + campus |
 | Amazon | `amazon.jobs` search API | global, CN filter supported |
+| Remotive | `remotive.com/api/remote-jobs` | key-less remote-jobs API; full JD (HTML stripped to text) and apply links included |
 
 `data/latest_jobs.json` holds the latest snapshot: 1,187 postings across these four, committed so the pipeline has real data to chew on without a fresh crawl. `data/latest_enriched.jsonl` is the same set after LLM analysis (degree, major requirement, scored skill tags, job family), so the site and the matcher work out of the box with zero API spend.
 

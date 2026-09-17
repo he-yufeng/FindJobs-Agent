@@ -139,3 +139,16 @@ FrontEnd/.bolt/
 
 # ==================== 报告图片（保留在docs目录） ====================
 report/
+
+# ---- 本地敏感与产物文件，永不入库 ----
+API_key*.md
+*.log
+jobs.db
+uploads/
+NLPProject.zip
+crawled_jobs_raw.json
+freehire_jobs_raw.json
+jobs_enriched.*
+何宇峰 简历.pdf
+Final Project Instruction.pdf
+项目说明文档.pdf
