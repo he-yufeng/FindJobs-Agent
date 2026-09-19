@@ -138,6 +138,33 @@ class FreehireApiSource:
             return [canonicalize(job) for job in json.load(f)]
 
 
+class RemotiveApiSource:
+    """Remotive 远程岗位公开 API（免 key），进程内调用。
+
+    与 freehire 互补：freehire 偏 IT 聚合，Remotive 偏全品类远程岗。
+    """
+
+    name = "remotive"
+
+    def __init__(self, options: Optional[Dict[str, Any]] = None, root: Optional[Path] = None):
+        self.options = dict(options or {})
+        self.root = Path(root) if root else ROOT_DIR
+
+    def fetch(self) -> List[Dict[str, Any]]:
+        from findjobs.remotive_source import RemotiveSource  # 延迟导入避开环
+
+        options = self.options
+        logger.info(
+            f"remotive 源: search={options.get('search') or '-'} "
+            f"category={options.get('category') or '-'} max={options.get('max_jobs') or 200}"
+        )
+        return RemotiveSource(
+            search=options.get('search') or '',
+            category=options.get('category') or '',
+            limit=options.get('max_jobs') or 200,
+        ).fetch()
+
+
 def dedupe_jobs(jobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """按 公司+job_id（无 job_id 时 公司+标题+地点）去重，先到的赢。"""
     seen: set = set()
@@ -157,12 +184,15 @@ def dedupe_jobs(jobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def default_sources(
     companies: Optional[List[str]] = None,
     freehire: Optional[Dict[str, Any]] = None,
+    remotive: Optional[Dict[str, Any]] = None,
     root: Optional[Path] = None,
 ) -> List[JobSource]:
-    """默认注册表：公司爬虫组，配置了 freehire 时追加聚合源。"""
+    """默认注册表：公司爬虫组，配置了 freehire/remotive 时追加聚合源。"""
     sources: List[JobSource] = [CompanyCrawlerSource(companies, root=root)]
     if freehire:
         sources.append(FreehireApiSource(freehire, root=root))
+    if remotive:
+        sources.append(RemotiveApiSource(remotive, root=root))
     return sources
 
 
@@ -177,7 +207,8 @@ def register_source(source: JobSource) -> None:
 def all_sources(
     companies: Optional[List[str]] = None,
     freehire: Optional[Dict[str, Any]] = None,
+    remotive: Optional[Dict[str, Any]] = None,
     root: Optional[Path] = None,
 ) -> List[JobSource]:
     """默认注册表 + 用户注册的所有源。"""
-    return default_sources(companies=companies, freehire=freehire, root=root) + list(_registered)
+    return default_sources(companies=companies, freehire=freehire, remotive=remotive, root=root) + list(_registered)

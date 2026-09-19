@@ -78,19 +78,19 @@ def _export_full_csv() -> None:
         logger.warning(f"   - 回写全量 CSV 失败（不影响 jobs.db）: {exc}")
 
 
-def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None, sources: Optional[List] = None) -> Dict[str, Any]:
+def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None, remotive: Optional[Dict[str, Any]] = None, sources: Optional[List] = None) -> Dict[str, Any]:
     """
     步骤1: 爬取原始岗位数据
 
     数据源走 JobSource 注册表（findjobs/job_source.py）：默认公司爬虫组，
-    配置了 freehire 时追加聚合源；传 sources 可整体替换（用户自定义源）。
+    配置了 freehire/remotive 时追加聚合源；传 sources 可整体替换（用户自定义源）。
     """
     print_banner("步骤 1/3: 爬取原始岗位数据")
 
     from . import job_source as job_source_mod
 
     active = sources if sources is not None else job_source_mod.all_sources(
-        companies=companies, freehire=freehire, root=ROOT_DIR
+        companies=companies, freehire=freehire, remotive=remotive, root=ROOT_DIR
     )
 
     jobs: List[Dict[str, Any]] = []
@@ -373,6 +373,14 @@ def main():
                         help='freehire 国家码，逗号分隔，如 us,de')
     parser.add_argument('--freehire-max', type=int, default=300,
                         help='freehire 源最大岗位数')
+    parser.add_argument('--remotive', action='store_true',
+                        help='同时拉取 Remotive 远程岗位源（免 key 公开 API，默认关闭）')
+    parser.add_argument('--remotive-search', default='',
+                        help='Remotive 全文关键词')
+    parser.add_argument('--remotive-category', default='',
+                        help='Remotive 分类 slug，如 software-dev')
+    parser.add_argument('--remotive-max', type=int, default=200,
+                        help='Remotive 源最大岗位数')
 
     args = parser.parse_args()
 
@@ -383,6 +391,14 @@ def main():
             'skills': args.freehire_skills,
             'countries': args.freehire_countries,
             'max_jobs': args.freehire_max,
+        }
+
+    remotive_opts = None
+    if args.remotive:
+        remotive_opts = {
+            'search': args.remotive_search,
+            'category': args.remotive_category,
+            'max_jobs': args.remotive_max,
         }
     
     print_banner("岗位数据处理流水线")
@@ -406,10 +422,10 @@ def main():
             step3_prepare_for_website()
     elif args.crawl_only:
         # 只爬取
-        step1_crawl_jobs(args.companies, freehire=freehire_opts)
+        step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts)
     else:
         # 完整流程
-        result1 = step1_crawl_jobs(args.companies, freehire=freehire_opts)
+        result1 = step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts)
         if result1['success']:
             result2 = step2_analyze_with_llm(args.max_jobs, reanalyze_all=args.reanalyze_all)
             if result2['success']:
