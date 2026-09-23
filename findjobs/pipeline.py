@@ -17,6 +17,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -195,10 +196,15 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None, reanalyze_all: bool =
     logger.info("   - 分类岗位族")
     logger.info("")
     
+    started_at = time.time()
     try:
         result = subprocess.run(cmd, cwd=str(ROOT_DIR), timeout=7200)  # 2小时超时
-        
-        if output_file.exists():
+
+        # A crashed analyzer must not read the previous run's CSV as success.
+        if result.returncode != 0:
+            logger.error(f"❌ 分析失败: 子进程退出码 {result.returncode}")
+            return {'success': False}
+        if output_file.exists() and output_file.stat().st_mtime >= started_at:
             # 读取分析后的数据统计
             import pandas as pd
             df = pd.read_csv(output_file)
@@ -229,7 +235,7 @@ def step2_analyze_with_llm(max_jobs: Optional[int] = None, reanalyze_all: bool =
                 'file': str(output_file),
             }
         else:
-            logger.error("❌ 分析失败: 未生成输出文件")
+            logger.error("❌ 分析失败: 未生成新的输出文件")
             return {'success': False}
             
     except subprocess.TimeoutExpired:

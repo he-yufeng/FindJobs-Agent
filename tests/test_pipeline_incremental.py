@@ -80,3 +80,43 @@ def test_reanalyze_all_sends_everything(tmp_path, monkeypatch):
     pipeline.step2_analyze_with_llm(reanalyze_all=True)
 
     assert captured["input_ids"] == ["a", "b"]
+
+
+def test_failing_analyzer_subprocess_fails_instead_of_reading_stale_csv(tmp_path, monkeypatch):
+    root = _setup(tmp_path, monkeypatch)
+    _write_raw(root, ["a", "b"])
+    storage.upsert_jobs(root / "jobs.db", [{"job_id": "a", "job_title": "job-a"}])
+    # stale output from a previous run sitting on disk
+    pd.DataFrame([{"job_id": "a", "job_title": "job-a", "skill_tags": "python"}]).to_csv(
+        root / "jobs_enriched.csv", index=False
+    )
+
+    def crashing_run(cmd, **_kwargs):
+        return subprocess.CompletedProcess(cmd, 1)
+
+    monkeypatch.setattr(pipeline.subprocess, "run", crashing_run)
+    result = pipeline.step2_analyze_with_llm()
+
+    assert result["success"] is False
+
+
+def test_zero_exit_without_fresh_output_fails_instead_of_reading_stale_csv(tmp_path, monkeypatch):
+    root = _setup(tmp_path, monkeypatch)
+    _write_raw(root, ["a", "b"])
+    storage.upsert_jobs(root / "jobs.db", [{"job_id": "a", "job_title": "job-a"}])
+    pd.DataFrame([{"job_id": "a", "job_title": "job-a", "skill_tags": "python"}]).to_csv(
+        root / "jobs_enriched.csv", index=False
+    )
+    # make the stale file unambiguously old
+    old = 946684800
+    import os
+
+    os.utime(root / "jobs_enriched.csv", (old, old))
+
+    def silent_run(cmd, **_kwargs):
+        return subprocess.CompletedProcess(cmd, 0)  # exit 0 but writes nothing
+
+    monkeypatch.setattr(pipeline.subprocess, "run", silent_run)
+    result = pipeline.step2_analyze_with_llm()
+
+    assert result["success"] is False
