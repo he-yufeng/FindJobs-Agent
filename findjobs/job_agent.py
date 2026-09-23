@@ -1310,11 +1310,33 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def resolve_api_keys(key_file: str | Path) -> List[str]:
+    """Key file first; when it is absent, fall back to env key material.
+
+    The checked-in repo no longer carries the default key file, so a missing
+    file used to kill the run even when a perfectly good key sat in the
+    environment. With neither present, fail as loudly as before.
+    """
+    path = Path(key_file)
+    if path.exists():
+        return load_api_keys(path)
+    keys: List[str] = []
+    for var in ("OPENROUTER_API_KEY", "OPENAI_API_KEY", "API_KEY"):
+        value = os.getenv(var, "").strip()
+        if value and value not in keys:
+            keys.append(value)
+    if not keys:
+        raise FileNotFoundError(
+            f"API key 文件不存在: {path}，且 OPENROUTER_API_KEY/OPENAI_API_KEY/API_KEY 均为空"
+        )
+    return keys
+
+
 def main() -> None:
     args = parse_args()
     configure_logging(args.verbose)
 
-    api_keys = load_api_keys(args.api_key_file)
+    api_keys = resolve_api_keys(args.api_key_file)
     api_manager = APIKeyManager(api_keys)
     llm_client = OpenAIClient(api_manager, model=args.model)
 
