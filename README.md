@@ -166,7 +166,7 @@ As of the last refresh (2026-09), four targeted crawlers are live; the Remotive 
 | Amazon | `amazon.jobs` search API | global, CN filter supported |
 | Remotive | `remotive.com/api/remote-jobs` | key-less remote-jobs API; full JD (HTML stripped to text) and apply links included |
 
-`data/latest_jobs.json` holds the latest snapshot: 1,187 postings across these four, committed so the pipeline has real data to chew on without a fresh crawl. `data/latest_enriched.jsonl` is the same set after LLM analysis (degree, major requirement, scored skill tags, job family), so the site and the matcher work out of the box with zero API spend.
+`data/latest_jobs.json` holds the latest snapshot: 1,180 postings across these four (refreshed 2026-09-24), committed so the pipeline has real data to chew on without a fresh crawl. `data/latest_enriched.jsonl` is the same set after LLM analysis (degree, major requirement, scored skill tags, job family), so the site and the matcher work out of the box with zero API spend.
 
 The other adapters (Baidu, Kuaishou, Xiaomi, Bilibili, DiDi, Pinduoduo, Huawei, Ctrip, DJI, NIO, XPeng, Li Auto, OPPO, VIVO, SenseTime, MiHoYo, SHEIN, Shopee, KE, Yuanfudao, Zuoyebang, Zhilian, Lagou, Microsoft, Google) were written against 2023-era endpoints that have since changed shape or started blocking plain requests; they currently return empty and need an adapter refresh. Alibaba, Meituan and JD go through `job_crawler_selenium.py` and want a local browser driver. If you rely on one of these, open an issue and it moves up the queue.
 
