@@ -181,6 +181,10 @@ GENERIC_SKILL_HINTS = {
     "技术": ["工程能力", "系统设计"],
 }
 
+# job_family 一级分类里的非技术族：这些岗位在纯技术标签库里可能本就
+# 没有匹配项，强制凑标签只会产出失真数据（issue #11）。
+NON_TECH_JOB_FAMILIES = {"产品", "设计"}
+
 # Allow spaces inside a tag so a multi-word skill like "Machine Learning" is
 # captured whole, but stop at a newline / comma so we don't run across the
 # boundary between two tags. The captured tag is .strip()-ed by the caller.
@@ -1036,6 +1040,7 @@ class JobAgent:
             validated.get("skills", []),
             candidate_tags,
             strength_info,
+            validated.get("job_family", {}).get("level1", ""),
         )
         skills = self.skill_review_agent.review(
             job_text,
@@ -1092,12 +1097,16 @@ class JobAgent:
         strength_section = self._build_strength_prompt(strength_info)
         knowledge_section = self._build_program_context_prompt(program_contexts)
         candidate_section = (
-            "【候选技能标签】请仅从下列列表中挑选最契合岗位的 3-10 个技能：\n"
-            f"{', '.join(candidate_tags)}"
+            "【候选技能标签】请仅从下列列表中挑选与岗位核心工作内容直接对应的技能：\n"
+            f"{', '.join(candidate_tags)}\n"
+            "不要仅因 JD 出现系统/平台/数据/协作等通用词就挑选相邻技术标签；"
+            "岗位本质是策划/设计/运营而非技术实现时，通常应返回空数组 skills: []；"
+            "宁可少选也不要硬凑不相关标签。"
         )
         taxonomy_section = (
             "【候选岗位族谱】务必从以下候选中选择最贴切的一级/二级岗位：\n"
-            f"{json.dumps(taxonomy_candidates, ensure_ascii=False)}"
+            f"{json.dumps(taxonomy_candidates, ensure_ascii=False)}\n"
+            "策划/设计/运营类岗位应选 产品/设计 族，不要因为 JD 涉及系统或数据就误判为技术岗。"
         )
         output_schema = (
             "【输出 JSON 结构】\n"
@@ -1192,6 +1201,7 @@ class JobAgent:
         skills_payload: List[Dict[str, Any]],
         candidate_tags: List[str],
         strength_info: Dict[str, Any],
+        job_family_level1: str = "",
     ) -> List[Tuple[str, int]]:
         valid_skills: List[Tuple[str, int]] = []
         for item in skills_payload:
@@ -1205,7 +1215,14 @@ class JobAgent:
 
         valid_skills = SkillNormalizer.normalize(valid_skills, candidate_tags)
 
-        if len(valid_skills) < self.min_skill_count:
+        # 非技术族（产品/设计）在纯技术标签库里本就可能没有匹配项，
+        # 兜底补齐只会产出"看起来像那么回事"的错误标签；缺匹配就留空。
+        # 技术族也只在模型自己找到过真实匹配时才兜底，避免给被误判的
+        # 非技术岗贴技术词。
+        force_fill = (
+            job_family_level1 not in NON_TECH_JOB_FAMILIES and len(valid_skills) > 0
+        )
+        if force_fill and len(valid_skills) < self.min_skill_count:
             logging.warning(
                 "技能数量不足（%s），将使用候选列表兜底。",
                 len(valid_skills),
