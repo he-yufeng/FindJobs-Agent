@@ -1,170 +1,103 @@
-# 后端API服务器使用说明
+# 后端 API 服务器使用说明
 
 ## 功能概述
 
-本项目提供了一个完整的后端服务，支持：
+后端服务 `findjobs.api_server`（Flask）提供：
 
-1. **简历解析**：上传PDF简历，自动提取信息并进行技能评分
+1. **简历解析**：上传 PDF 简历，自动提取信息并进行技能评分
 2. **岗位匹配**：根据简历技能自动匹配最适合的岗位
-3. **智能面试（3阶段）**：开场白（Greeting）→ 5轮问答（Q&A，自动评分）→ 总结（Summary）
+3. **智能面试（3 阶段）**：开场白（Greeting）→ 5 轮问答（Q&A，自动评分）→ 总结（Summary）
+4. **投递看板**：跟踪每个岗位的投递状态
 
-## 安装依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-## 启动服务器
+## 安装与启动
 
 ```bash
-python api_server.py
+pip install -e .
+python -m findjobs.api_server
 ```
 
-服务器将在 `http://localhost:5000` 启动。
+服务器默认在 `http://localhost:5000` 启动（`PORT` 环境变量可改）。
 
-## API接口说明
+## API 接口一览
 
-### 1. 健康检查
-- **GET** `/api/health`
-- 返回服务器状态
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/api/health` | 健康检查 |
+| POST | `/api/resume/upload` | 上传 PDF 简历（`multipart/form-data`，字段 `file`），返回解析结果与技能评分 |
+| GET | `/api/resume/<resume_id>` | 简历详情 |
+| GET | `/api/resume/file/<file_id>` | 取回原 PDF 文件 |
+| GET | `/api/jobs` | 岗位列表（来自 `jobs.db`，空库在 Demo 模式下自动播种示例岗位） |
+| POST | `/api/jobs/match` | 岗位匹配，请求体 `{"resume_id": "..."}`，返回按匹配度排序的 `matches` |
+| POST | `/api/interview/start` | 开场白，可选 `{"resume_id": "...", "job_id": "..."}`，返回 `session_id` |
+| POST | `/api/interview/<session_id>/message` | 发送回答，按阶段返回评分与下一题 |
+| GET | `/api/interview` | 全部面试会话索引（按开始时间倒序，不含消息正文） |
+| GET | `/api/interview/<session_id>` | 单个会话的元数据与消息列表 |
+| GET | `/api/applications` | 投递看板：每个被跟踪岗位的当前状态 |
+| PUT | `/api/applications/<job_id>` | 标记或更新投递状态，请求体 `{"status": "...", "note": "..."}` |
+| DELETE | `/api/applications/<job_id>` | 从看板移除一个岗位 |
 
-### 2. 简历上传
-- **POST** `/api/resume/upload`
-- 请求：`multipart/form-data`，字段名：`file`（PDF文件）
-- 返回：简历信息和技能评分
+## 面试阶段协议
 
-### 3. 获取简历
-- **GET** `/api/resume/<resume_id>`
-- 返回：简历详情
+### 开场白（阶段 1：Greeting）
 
-### 4. 获取岗位列表
-- **GET** `/api/bdobe_jobs` → 已更新为 `/api/jobs`
-- 返回：所有岗位列表（从 `bytedance_jobs_enriched.csv` 加载）
+`POST /api/interview/start` 返回：
 
-> 注：如果未预生成可用岗位数据，可先在项目根目录运行：`python job_agent.py`，生成/更新 `bytedance_jobs_enriched.csv`。
+```json
+{
+  "session_id": "SESSION_UUID",
+  "message": "<开场白+自我介绍引导>",
+  "question": null,
+  "stage": "greeting"
+}
+```
 
-### 5. 岗位匹配
-- **POST** `/api/jobs/match`
-- 请求体：
-  ```json
-  {"resume_id": "<resume_id>"}
-  ```
-- 返回：匹配结果列表（`matches`），已按“匹配标签数量优先，其次匹配分数”排序。
+服务端同时初始化会话状态：`phase=greeting, qa_count=0, max_qa=5`。
 
-### 6. 开场白（阶段1：Greeting）
-- **POST** `/api/interview/start`
-- 请求体（可选）：
-  ```json
-  { "resume_id": "optional-resume-id", "job_id": "optional-job-id" }
-  ```
-- 返回（仅开场白＋自我介绍提示，不出题）：
-  ```json
-  {
-    "session_id": "SESSION_UUID",
-    "message": "<开场白+自我介绍引导>",
-    "question": null,
-    "stage": "greeting"
-  }
-  ```
+### 问答与总结（阶段 2&3：Q&A / Summary）
 
-> 服务端同时初始化会话状态：`phase=greeting, qa_count=0, max_qa=5`。
+`POST /api/interview/<session_id>/message`，请求体 `{ "message": "用户的回答" }`，按阶段返回：
 
-### 7. 发送面试消息（阶段2&3：Q&A / Summary）
-- **POST** `/api/interview/<session_id>/message`
-- 请求体：
-  ```json
-  { "message": "用户的回答或输入" }
-  ```
-- 返回（结构化回复，按阶段不同）：
-  - 处于 `greeting` 阶段：返回过渡话术并给出“第1题”，同时会话进入 `phase=qa`
-    ```json
-    {
-      "message": "<过渡话术>\n\n第1题：\n<问题文本>",
-      "stage": "qa",
-      "question": "<问题文本>",
-      "evaluation": null,
-      "qa_count": 0
-    }
-    ```
-  - 处于 `qa` 阶段：对上一题评分并给出下一题
-    ```json
-    {
-      "message": "【评分：4/5】…\n优点：…\n改进建议：…\n\n第<N>题：\n<问题文本>",
-      "stage": "qa",
-      "question": "<问题文本>",
-      "evaluation": {
-        "score": 4,
-        "feedback": "详细反馈",
-        "strengths": ["…"],
-        "improvements": ["…"]
-      },
-      "qa_count": 3
-    }
-    ```
-  - 当 `qa_count` 达到上限（默认5）时：进入 `summary` 阶段，返回总结
-    ```json
-    {
-      "message": "面试结束。以下是您的综合反馈报告：\n<总结文本>",
-      "stage": "summary",
-      "question": null,
-      "evaluation": { "score": 4, "feedback": "…", "strengths": ["…"], "improvements": ["…"] },
-      "final_feedback": "<完整总结>",
-      "average_score": 4.0
-    }
-    ```
+- `greeting` 阶段：返回过渡话术并给出第 1 题，会话进入 `phase=qa`
+- `qa` 阶段：对上一题评分并给出下一题，`evaluation` 带 `score` / `feedback` / `strengths` / `improvements`
+- `qa_count` 达到上限（默认 5）后进入 `summary`，返回 `final_feedback` 与 `average_score`
 
-### 8. 获取面试会话
-- **GET** `/api/interview/<session_id>`
-- 返回：会话元数据与消息列表
+## 前端接入
 
-## 前端接入说明
+前端代码在 `FrontEnd/`：
 
-前端代码位于 `FrontEnd/` 目录。
-
-### 启动前端开发服务器
 ```bash
 cd FrontEnd
 npm install
 npm run dev
 ```
-- 默认地址：`http://localhost:5173`
-- 可通过 `FrontEnd/.psn`（或 `.env`）设置：
-  ```
-  VITE_API_URL=http://localhost:5000/api
-  ```
-  不设置时将使用内置代理将 `/api` 代理到 `http://localhost:5000`。
+
+- 默认地址 `http://localhost:5173`
+- 开发服务器已把 `/api` 代理到 `http://localhost:5000`（见 `FrontEnd/vite.config.ts`）；要指向别的后端，设 `VITE_API_URL` 环境变量。
 
 ## 部署说明
 
-ModelScope / Docker 部署可以参考 `ms_deploy.example.json`。真实的 `ms_deploy.json` 属于本地部署文件，已经在 `.gitignore` 中忽略；请把 `OPENROUTER_API_KEY` 放在平台密钥或环境变量里，不要提交真实 key。
+ModelScope / Docker 部署参考 `config/ms_deploy.example.json`，根目录的 `Dockerfile` 可直接构建后端镜像（默认端口 7860）。真实的 `ms_deploy.json` 属于本地部署文件，已在 `.gitignore` 中忽略；请把 `OPENROUTER_API_KEY` 放在平台密钥或环境变量里，不要提交真实 key。
 
-## 数据文件要求
+## 数据与配置
 
-确保以下文件存在：
-
-1. `API_key-openai.md` - OpenAI API密钥文件（多行、每行一个key或带别名）
-2. `all_labels.csv` - 技能标签库（包含 `level_3rd`、`tags` 等）
-3. `bytedance_jobs_enriched.csv` - 岗位数据（可通过运行 `python job_agent.py` 生成）
-4. （可选）`tech_taxonomy.json` - 岗位族谱缓存（`job_agent.py` 首次运行后生成）
+1. 岗位与面试数据都在根目录 `jobs.db`（SQLite），首次运行自动建表；Demo 模式（`FINDJOBS_DEMO=1`）下空库自动从 `data/sample_jobs.json` 播种。
+2. 技能标签库在 `data/all_labels.csv`，岗位族谱缓存在 `data/tech_taxonomy.json`。
+3. LLM key 从环境变量（`OPENROUTER_API_KEY` / `OPENAI_API_KEY`）读取，也可放根目录 `API_key-openai.md`（多行、每行一个 key 或带别名），该文件已在 `.gitignore` 中忽略。
 
 ## 注意事项
 
-1. 确保 `tag_rate.py` 在同一目录下（用于加载评分规则与API Key管理）
-2. PDF解析使用 `PyPDF2`
-3. 所有与LLM相关的API调用依赖 `API_key-openai.md` 中的有效OpenAI密钥
-4. 上传的PDF文件大小限制为 10MB
-5. 上传的简历文件会保存在 `uploads/`
+1. PDF 解析使用 `pypdf`。
+2. 上传的 PDF 限制 10MB，文件保存在 `uploads/`。
+3. Demo 模式下所有 LLM 调用走离线桩 `findjobs/demo_llm.py`，不消耗任何 key。
 
 ## 故障排除
 
 ### 导入错误
-- 确认 `pip install -r requirements.txt` 已执行
-- 确认 `tag_rate.py`、`API_key-openai.md`、`all_labels.csv` 文件存在
+- 确认已执行 `pip install -e .`
 
-### API调用失败
-- 核查 `API_key-openai.md` 格式与密钥是否有效
-- 核查代理/防火墙设置，保证能访问 `api.openai.com`
+### API 调用失败
+- 核查 key 是否有效（环境变量或 `API_key-openai.md`）
+- 核查代理/防火墙设置，保证能访问对应的 LLM 端点
 
-### PDF解析失败
-- 确认PDF未加密且内容可复制
-- 如日志提示超时，可适当增大 `REQUEST_TIMEOUT`
+### PDF 解析失败
+- 确认 PDF 未加密且内容可复制

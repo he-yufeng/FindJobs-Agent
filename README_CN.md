@@ -2,7 +2,7 @@
 
 <img src="docs/banner.png" alt="FindJobs-Agent" width="100%">
 
-[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
@@ -27,9 +27,9 @@
 不想先配 API Key，也能把整套流程完整跑一遍。Demo 模式完全离线：
 
 ```bash
-pip install -r requirements.txt
-FINDJOBS_DEMO=1 python api_server.py        # 后端 :5000，数据库为空时自动写入示例岗位
-cd FrontEnd && npm install && npm run dev   # 前端 :8080
+pip install -e .
+FINDJOBS_DEMO=1 python -m findjobs.api_server   # 后端 :5000，数据库为空时自动写入示例岗位
+cd FrontEnd && npm install && npm run dev   # 前端 :5173
 ```
 
 Demo 模式具体做的事：启动时如果 `jobs.db` 是空的，就从 `data/sample_jobs.json` 写入 54 条手工编写的示例岗位（覆盖爬虫支持的那些公司）；所有 LLM 调用改走 `demo_llm.py` 里的确定性离线桩，根据 prompt 内容生成回答，不发任何网络请求，即使本地已经配了 Key。在简历页直接上传仓库自带的 `data/sample_resume.pdf`，就能把简历解析、岗位匹配、三阶段模拟面试和投递看板整条链路体验一遍。后端以 Demo 模式运行时，导航栏会多出一个「Demo」小标记。
@@ -83,7 +83,7 @@ FindJobs-Agent/
 ## 快速开始
 
 ### 环境要求
-- Python 3.9+
+- Python 3.10+
 - Node.js 18+
 - Chrome 浏览器（Selenium 爬虫需要）
 
@@ -95,7 +95,7 @@ cd FindJobs-Agent
 
 ### 2. 安装后端依赖
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 3. 配置 API Key
@@ -106,7 +106,7 @@ sk-your-api-key-here
 
 ### 4. 启动后端服务
 ```bash
-python api_server.py
+python -m findjobs.api_server
 ```
 
 ### 5. 启动前端
@@ -117,24 +117,24 @@ npm run dev
 ```
 
 ### 6. 访问应用
-打开浏览器访问 http://localhost:8080
+打开浏览器访问 http://localhost:5173
 
 ## 数据处理流程
 
-`pipeline.py` 把爬取 → 分析 → 评分 → 展示串成一条链路。可以整条跑，也可以只跑某一步：
+`findjobs` 把爬取 → 分析 → 评分 → 展示串成一条链路。可以整条跑，也可以只跑某一步：
 
 ```bash
-python pipeline.py                                          # 爬取 + 分析 + 生成网站数据
-python job_crawler_v2.py -c tencent netease amazon -m 300   # 仅爬取（--list 查看支持的公司）
-python pipeline.py --analyze-only --max-jobs 50             # 仅分析（测试）
+findjobs                                                        # 爬取 + 分析 + 生成网站数据
+python -m findjobs.job_crawler_v2 -c tencent netease amazon -m 300   # 仅爬取（--list 查看支持的公司）
+findjobs --analyze-only --max-jobs 50                           # 仅分析（测试）
 ```
 
 另有一个可选的聚合源：[freehire.me](https://freehire.me) 是开源 IT 职位聚合站，公开 API 免 key，搜索结果自带完整 markdown JD 和公司官方 ATS 投递链接，不用二次抓详情页。默认关闭，用 `--freehire` 打开，也可以单独跑：
 
 ```bash
-python pipeline.py --freehire --freehire-query "backend"      # 公司爬虫之外再拉 freehire
-python freehire_source.py -q "ml engineer" --skills python,pytorch --countries us,de -m 100
-python freehire_source.py --list-facets skills                # 查看实时筛选词表（skill slug、国家码等）
+findjobs --freehire --freehire-query "backend"                    # 公司爬虫之外再拉 freehire
+python -m findjobs.freehire_source -q "ml engineer" --skills python,pytorch --countries us,de -m 100
+python -m findjobs.freehire_source --list-facets skills           # 查看实时筛选词表（skill slug、国家码等）
 ```
 
 **数据源可插拔**。爬虫、第三方招聘 API、本地 JSON 文件统一走 `JobSource` 接口（`findjobs/job_source.py`）：实现 `name` + `fetch()` 返回统一 schema 的岗位字典，然后 `register_source(...)` 挂上即可，不用改 pipeline 代码。pipeline 只遍历注册表（默认公司爬虫组，开 `--freehire` 时追加聚合源），跨源自动去重；`pipeline.step1_crawl_jobs(sources=[...])` 也接受整体替换的自定义源列表。
@@ -176,20 +176,26 @@ register_source(RemotiveSource(search="llm", category="software-dev", limit=100)
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/jobs` | GET | 获取岗位列表 |
-| `/api/jobs/<id>` | GET | 获取岗位详情 |
-| `/api/resume/upload` | POST | 上传简历 |
-| `/api/resume/analyze` | POST | 分析简历 |
-| `/api/interview/start` | POST | 开始面试 |
-| `/api/interview/answer` | POST | 提交答案 |
+| `/api/health` | GET | 健康检查 |
+| `/api/resume/upload` | POST | 上传 PDF 简历，返回解析结果与技能评分 |
+| `/api/resume/<id>` | GET | 简历详情 |
+| `/api/resume/file/<id>` | GET | 取回原 PDF |
+| `/api/jobs` | GET | 岗位列表 |
+| `/api/jobs/match` | POST | 简历×岗位匹配（`{"resume_id": "..."}`） |
+| `/api/interview/start` | POST | 开始模拟面试，返回 `session_id` |
+| `/api/interview/<id>/message` | POST | 发送回答，返回评分与下一题 |
+| `/api/interview` | GET | 面试会话索引 |
+| `/api/interview/<id>` | GET | 单个会话详情（含消息） |
+| `/api/applications` | GET | 投递看板：每个被跟踪岗位的当前状态 |
+| `/api/applications/<job_id>` | PUT | 标记或更新投递状态 |
+| `/api/applications/<job_id>` | DELETE | 从看板移除岗位 |
 
 ## 后续规划
 
-爬取、分析、简历匹配、模拟面试已经能跑通整条链路，接下来想把入口拓宽、把求职跟到匹配之后：
+爬取、分析、简历匹配、模拟面试、投递看板已经能跑通整条链路，接下来想把入口拓宽、把面试做得更真：
 
 - **更多岗位来源**：把爬虫从当前的公司列表扩展到招聘平台和聚合站，让匹配不再局限于固定名单。
 - **增量爬取**：记录已经见过的岗位，只抓新发布的，而不是每次重爬、重分析全量。
-- **投递进度跟踪**：前端看板页记录每个岗位的投递状态（已收藏 / 已投递 / 有回复 / 面试中 / 已拿 Offer / 已拒绝），状态和备注即时保存，后端落在 SQLite 的 `/api/applications`。
 - **语音模拟面试**：给 AI 面试官加上语音输入输出，比纯文字聊天更接近真实面试。
 
 ## 相关项目

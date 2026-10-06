@@ -2,7 +2,7 @@
 
 <img src="docs/banner.png" alt="FindJobs-Agent" width="100%">
 
-[![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
@@ -27,9 +27,9 @@ A full-stack job search assistant that crawls postings from major tech companies
 No API key? No problem. Demo mode runs the whole app offline:
 
 ```bash
-pip install -r requirements.txt
-FINDJOBS_DEMO=1 python api_server.py        # backend on :5000, seeds sample jobs on first run
-cd FrontEnd && npm install && npm run dev   # frontend on :8080
+pip install -e .
+FINDJOBS_DEMO=1 python -m findjobs.api_server   # backend on :5000, seeds sample jobs on first run
+cd FrontEnd && npm install && npm run dev   # frontend on :5173
 ```
 
 With `FINDJOBS_DEMO=1`, the server fills an empty `jobs.db` from `data/sample_jobs.json` (54 hand-written postings from the companies the crawlers target) and routes every LLM call through `demo_llm.py`, a deterministic stub that answers from the prompt content and never touches the network, even if a key is configured. Upload the bundled `data/sample_resume.pdf` on the resume page to walk the full loop: parsing, match scores, a 3-stage mock interview, and the tracking board. While the backend runs in demo mode, a small "Demo" badge shows in the navbar.
@@ -83,7 +83,7 @@ FindJobs-Agent/
 ## Quick Start
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.10+
 - Node.js 18+
 - Chrome (required for Selenium crawler)
 
@@ -93,9 +93,9 @@ git clone https://github.com/he-yufeng/FindJobs-Agent.git
 cd FindJobs-Agent
 ```
 
-### 2. Install backend dependencies
+### 2. Install the backend
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### 3. Set up your API key
@@ -106,7 +106,7 @@ sk-your-api-key-here
 
 ### 4. Start the backend
 ```bash
-python api_server.py
+python -m findjobs.api_server
 ```
 
 ### 5. Start the frontend
@@ -117,24 +117,24 @@ npm run dev
 ```
 
 ### 6. Open the app
-Visit http://localhost:8080 in your browser.
+Visit http://localhost:5173 in your browser.
 
 ## Data Pipeline
 
-`pipeline.py` chains crawl → analyze → score → serve. Run the whole thing, or a single stage:
+`findjobs` chains crawl → analyze → score → serve. Run the whole thing, or a single stage:
 
 ```bash
-python pipeline.py                                          # crawl + analyze + build site data
-python job_crawler_v2.py -c tencent netease amazon -m 300   # crawl only (--list shows companies)
-python pipeline.py --analyze-only --max-jobs 50             # analyze only (for testing)
+findjobs                                                        # crawl + analyze + build site data
+python -m findjobs.job_crawler_v2 -c tencent netease amazon -m 300   # crawl only (--list shows companies)
+findjobs --analyze-only --max-jobs 50                           # analyze only (for testing)
 ```
 
 An optional aggregator source is available via [freehire.me](https://freehire.me), an open IT job board whose public API needs no key. Each result already carries the full markdown JD and the employer's own ATS apply link, so there is no detail page to re-fetch. It stays off by default; flip it on with `--freehire`, or run it standalone:
 
 ```bash
-python pipeline.py --freehire --freehire-query "backend"      # company crawlers + freehire
-python freehire_source.py -q "ml engineer" --skills python,pytorch --countries us,de -m 100
-python freehire_source.py --list-facets skills                # live filter vocabulary (skill slugs, country codes)
+findjobs --freehire --freehire-query "backend"                    # company crawlers + freehire
+python -m findjobs.freehire_source -q "ml engineer" --skills python,pytorch --countries us,de -m 100
+python -m findjobs.freehire_source --list-facets skills           # live filter vocabulary (skill slugs, country codes)
 ```
 
 **Pluggable job sources.** Crawlers, third-party APIs, and local JSON files all enter through one `JobSource` interface (`findjobs/job_source.py`): implement `name` + `fetch()` returning canonical job dicts, then `register_source(...)` — no pipeline edits. The pipeline walks the registry (`company crawlers` by default, `freehire` when enabled), dedupes across sources, and `pipeline.step1_crawl_jobs(sources=[...])` accepts a full replacement list for custom feeds.
@@ -176,20 +176,26 @@ The other adapters (Baidu, Kuaishou, Xiaomi, Bilibili, DiDi, Pinduoduo, Huawei, 
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/resume/upload` | POST | Upload a PDF resume, returns parsed info + skill scores |
+| `/api/resume/<id>` | GET | Resume details |
+| `/api/resume/file/<id>` | GET | Original PDF |
 | `/api/jobs` | GET | List job postings |
-| `/api/jobs/<id>` | GET | Get job details |
-| `/api/resume/upload` | POST | Upload resume |
-| `/api/resume/analyze` | POST | Analyze resume |
-| `/api/interview/start` | POST | Start mock interview |
-| `/api/interview/answer` | POST | Submit interview answer |
+| `/api/jobs/match` | POST | Match a resume against jobs (`{"resume_id": "..."}`) |
+| `/api/interview/start` | POST | Start a mock interview, returns `session_id` |
+| `/api/interview/<id>/message` | POST | Send an answer, get score + next question |
+| `/api/interview` | GET | List interview sessions |
+| `/api/interview/<id>` | GET | Session detail with messages |
+| `/api/applications` | GET | Application board: status per tracked job |
+| `/api/applications/<job_id>` | PUT | Set or update an application's status |
+| `/api/applications/<job_id>` | DELETE | Remove a job from the board |
 
 ## Roadmap
 
-Crawl, analyze, resume match, and mock interview work end to end. The next steps widen the funnel and follow the hunt past the match:
+Crawl, analyze, resume match, mock interview, and the application board all work end to end. The next steps widen the funnel and get closer to a real screen:
 
 - **More job sources** — extend the crawler beyond the current company set to job boards and aggregators, so matching isn't limited to a fixed list.
 - **Incremental crawls** — track which postings were already seen and fetch only new ones, instead of re-crawling and re-analyzing the full set each run.
-- **Application tracking** — a board page in the frontend tracks each job through bookmarked / applied / replied / interview / offer / rejected, backed by `/api/applications` in SQLite. Status changes and notes save inline.
 - **Voice mock interviews** — speech in and out for the AI interviewer, closer to a real screen than a text chat.
 
 ## Related Projects
