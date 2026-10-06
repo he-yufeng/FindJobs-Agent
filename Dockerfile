@@ -1,39 +1,25 @@
-FROM python:3.10-slim
-
-# 安装 Node.js (用于构建前端)
-RUN apt-get update && apt-get install -y curl && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# 后端镜像：打包后的 findjobs 包 + gunicorn。
+# 前端不在镜像里，api_server 只提供 /api（CORS 已开），FrontEnd 单独部署。
+FROM python:3.12-slim
 
 WORKDIR /app
 
-# 复制 Python 依赖并安装
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 打包元数据和源码
+COPY pyproject.toml README.md ./
+COPY findjobs/ findjobs/
 
-# 复制前端代码并构建
-COPY FrontEnd/package.json FrontEnd/package-lock.json* FrontEnd/
-RUN cd FrontEnd && npm install
+# 运行期数据：标签库、示例岗位、LLM 默认配置
+COPY data/ data/
+COPY config/ config/
 
-COPY FrontEnd/ FrontEnd/
-RUN cd FrontEnd && npm run build
+RUN pip install --no-cache-dir .
 
-# 复制后端代码和数据文件
-COPY *.py ./
-COPY *.csv ./
-COPY *.json ./
-COPY llm_config.json ./
-
-# 创建必要的目录
+# 运行期目录：上传的简历、面试报告
 RUN mkdir -p uploads report
 
-# 暴露端口
-EXPOSE 7860
-
-# 设置环境变量
 ENV PORT=7860
 ENV PYTHONUNBUFFERED=1
+EXPOSE 7860
 
-# 启动应用
-CMD ["python", "app.py"]
+# LLM key 走环境变量注入（OPENROUTER_API_KEY / OPENAI_API_KEY），不要打进镜像
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT} --workers 2 findjobs.api_server:app"]
