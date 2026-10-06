@@ -1,83 +1,59 @@
+"""给技能标签库补新标签的一次性脚本。
+
+跑法：``python -m findjobs.add_tags``。key 走 tag_rate 的 load_api_keys，
+从仓库根的 API_key-openai.md 读取。import 这个模块不会执行任何流程。
+"""
 
 import json
 import re
 import time
-from pathlib import Path
-from typing import List, Dict, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from threading import Lock
+from pathlib import Path
+from typing import Dict, List, Tuple
 
 import pandas as pd
 import requests
 
+from .tag_rate import APIKeyManager, load_api_keys
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 API_KEY_FILE = ROOT_DIR / "API_key-openai.md"
 
-
-# 全局配置
-def load_api_keys(file_path: Path = API_KEY_FILE) -> List[str]:
-    """从 API_key-openai.md 文件加载所有API key"""
-    api_keys: List[str] = []
-    if not file_path.exists():
-        raise FileNotFoundError(f"未找到 API key 文件: {file_path}")
-    with open(file_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            parts = line.split()
-            if len(parts) >= 2:
-                key = parts[-1].strip('"\'')
-                if key.startswith('sk-'):
-                    api_keys.append(key)
-            elif line.startswith('sk-'):
-                api_keys.append(line)
-    if not api_keys:
-        raise ValueError(f"在 {file_path} 中未找到任何有效的 OpenAI API key")
-    print(f"[INFO] 成功加载 {len(api_keys)} 个API key")
-    return api_keys
-
-
-# 加载所有API key
-API_KEYS = load_api_keys()
-
 API_URL = "https://api.openai.com/v1/chat/completions"
 MODEL_NAME = "gpt-5-mini"  # 使用 gpt-4 或 gpt-4-turbo 以获得最佳效果
-TIMEOUT = 90  
+TIMEOUT = 90
 MAX_RETRY = 3
-MAX_WORKERS = min(len(API_KEYS), 10)  # 并行工作线程数
-
-# API key轮询锁
-_api_key_lock = Lock()
-_api_key_index = 0
-
-def get_next_api_key() -> str:
-    """轮询获取下一个API key"""
-    global _api_key_index
-    with _api_key_lock:
-        key = API_KEYS[_api_key_index % len(API_KEYS)]
-        _api_key_index += 1
-        return key
 
 # 输入 / 输出文件
 TAGS_CSV = ROOT_DIR / "data" / "all_labels.csv"
 USER_DATA_CSV = ROOT_DIR / "merged_user_descriptions.csv"
 OUTPUT_CSV = ROOT_DIR / "new_labels_list.csv"  # 输出文件名
 
-# 数据加载与预处理 
+_key_manager: APIKeyManager | None = None
+
+
+def _keys() -> APIKeyManager:
+    """首次用时才加载 key 文件，import 阶段不碰磁盘。"""
+    global _key_manager
+    if _key_manager is None:
+        _key_manager = APIKeyManager(load_api_keys(API_KEY_FILE))
+    return _key_manager
+
+
+# 数据加载与预处理
 def read_csv_with_encoding(file_path: Path, **kwargs):
     """尝试多种编码和解析选项读取CSV文件"""
     encodings = ['utf-8', 'gbk', 'gb2312', 'gb18030', 'utf-8-sig', 'latin1']
     last_error = None
-    
+
     # 合并用户提供的kwargs
     csv_options = kwargs.copy()
-    
+
     for encoding in encodings:
         try:
             # 首先尝试标准读取
             df = pd.read_csv(
-                file_path, 
+                file_path,
                 encoding=encoding,
                 **csv_options
             )
@@ -86,7 +62,7 @@ def read_csv_with_encoding(file_path: Path, **kwargs):
         except UnicodeDecodeError as e:
             last_error = e
             continue
-        except (pd.errors.ParserError, pd.errors.EmptyDataError) as e:
+        except (pd.errors.ParserError, pd.errors.EmptyDataError):
             # 如果是解析错误，尝试更宽松的设置
             try:
                 df = pd.read_csv(
@@ -104,51 +80,9 @@ def read_csv_with_encoding(file_path: Path, **kwargs):
         except Exception as e:
             last_error = e
             continue
-    
+
     raise ValueError(f"无法读取文件 {file_path.name}，已尝试所有编码: {encodings}。最后错误: {last_error}")
 
-print("[INFO] 开始加载和预处理数据...")
-
-try:
-    # 加载标签数据
-    tags_df = read_csv_with_encoding(TAGS_CSV)
-    if not {'level_3rd', 'skill_type', 'tags'}.issubset(tags_df.columns):
-        raise ValueError(f"{TAGS_CSV.name} 必须包含 'level_3rd', 'skill_type', 'tags' 三列")
-    print(f"[INFO] 成功加载 {len(tags_df)} 行标签数据从 {TAGS_CSV.name}")
-
-    # 加载用户工作描述数据
-    user_df = read_csv_with_encoding(USER_DATA_CSV)
-    if not {'exp_type', 'work_lv3_name', 'work_description'}.issubset(user_df.columns):
-        raise ValueError(f"{USER_DATA_CSV.name} 必须包含 'exp_type', 'work_lv3_name', 'work_description' 列")
-    print(f"[INFO] 成功加载 {len(user_df)} 行用户数据从 {USER_DATA_CSV.name}")
-
-except FileNotFoundError as e:
-    print(f"[ERROR] 文件未找到: {e}. 请确保脚本与数据文件在同一目录下。")
-    exit()
-except ValueError as e:
-    print(f"[ERROR] {e}")
-    exit()
-except Exception as e:
-    print(f"[ERROR] 读取文件时发生未知错误: {e}")
-    exit()
-
-# 预处理：按三级类分组，聚合工作描述
-print("[INFO] 正在聚合工作描述...")
-work_descriptions: Dict[str, str] = {}
-work_df = user_df[user_df['exp_type'] == 'WORK'].copy()
-work_df.dropna(subset=['work_lv3_name', 'work_description'], inplace=True)
-
-# 对每个三级分类，拼接其所有的工作描述
-# 为避免 prompt 过长，这里限制每个岗位的总描述长度
-MAX_DESC_LENGTH = 4000
-for lv3_name, group in work_df.groupby('work_lv3_name'):
-    # 将所有描述用换行符合并，并截断到最大长度
-    full_desc = "\n---\n".join(group['work_description'].astype(str).unique())
-    work_descriptions[lv3_name] = full_desc[:MAX_DESC_LENGTH]
-
-print(f"[INFO] 数据预处理完成，聚合了 {len(work_descriptions)} 个岗位的真实工作描述。")
-
-# 请求封装（HEADERS将在每次调用时动态生成）
 
 SYSTEM_MSG = (
     "你是顶级的行业技能分析专家，任务是根据市场当前需求，为职业技能列表补充新的、重要的技能标签。\n"
@@ -165,8 +99,9 @@ SYSTEM_MSG = (
     "5. **禁止项**: 绝对禁止输出任何 JSON 格式之外的文字、解释、或任何形式的寒暄。"
 )
 
-def call_llm(prompt: str, api_key: str = None) -> str:
-    api_key = api_key or get_next_api_key()
+
+def call_llm(prompt: str, api_key: str | None = None) -> str:
+    api_key = api_key or _keys().get_key()
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
@@ -187,10 +122,11 @@ def call_llm(prompt: str, api_key: str = None) -> str:
             print(f"  [WARN] LLM 请求失败 (第 {attempt}/{MAX_RETRY} 次): {e}")
         except (KeyError, IndexError) as e:
             print(f"  [WARN] LLM 响应格式错误 (第 {attempt}/{MAX_RETRY} 次): {e}")
-        
+
         if attempt < MAX_RETRY:
-            time.sleep(2 * attempt) # 指数退避
-    return "" # 所有重试失败后返回空字符串
+            time.sleep(2 * attempt)  # 指数退避
+    return ""  # 所有重试失败后返回空字符串
+
 
 # JSON 解析
 def safe_json_load(text: str) -> Dict[str, List[str]]:
@@ -202,19 +138,20 @@ def safe_json_load(text: str) -> Dict[str, List[str]]:
     except json.JSONDecodeError:
         return {}
 
+
 # 处理单个分组的函数（用于并行处理）
-def process_single_group(args: Tuple) -> Dict:
+def process_single_group(args: Tuple) -> Dict | None:
     """处理单个标签分组"""
     i, level_3rd, skill_type, group, work_descriptions, total_groups = args
-    
-    print(f"\n--- [{i+1}/{total_groups}] 正在处理: {level_3rd} / {skill_type} ---")
-    
+
+    print(f"\n--- [{i}/{total_groups}] 正在处理: {level_3rd} / {skill_type} ---")
+
     # 整理当前分组的原始标签
     original_tags = sorted({t.strip() for ts in group['tags'] for t in str(ts).split('|_|') if t.strip()})
     if not original_tags:
         print("  [INFO] 该分组无有效原始标签，跳过。")
         return None
-    
+
     # 获取对应的工作描述
     descriptions = work_descriptions.get(level_3rd)
     if not descriptions:
@@ -231,13 +168,12 @@ def process_single_group(args: Tuple) -> Dict:
     )
 
     # 调用 LLM（使用轮询的API key）
-    api_key = get_next_api_key()
-    response_text = call_llm(prompt, api_key)
+    response_text = call_llm(prompt)
 
     if not response_text:
         print("  [ERROR] LLM 无有效返回，跳过此分组。")
         return None
-    
+
     print(f"  [DEBUG] LLM 原始返回: {response_text[:200]}...")
 
     # 解析结果
@@ -250,7 +186,7 @@ def process_single_group(args: Tuple) -> Dict:
 
     # 清理和去重
     add_tags = sorted(list({t.strip() for t in add_tags if t.strip()}))
-    
+
     print(f"  [INFO] 原始标签数: {len(original_tags)} | AI建议新增: {len(add_tags)} 个 -> {add_tags if add_tags else '无'}")
 
     # 返回结果
@@ -264,48 +200,98 @@ def process_single_group(args: Tuple) -> Dict:
         '_original_idx': i  # 用于排序
     }
 
-# 主流程（并行版本）
-results: List[Dict] = []
-groups_list = list(tags_df.groupby(['level_3rd', 'skill_type']))
-total_groups = len(groups_list)
-print(f"\n[INFO] 开始处理 {total_groups} 个标签分组（使用 {MAX_WORKERS} 个并行线程）...")
 
-# 准备任务列表
-tasks = [
-    (i, level_3rd, skill_type, group, work_descriptions, total_groups)
-    for i, ((level_3rd, skill_type), group) in enumerate(groups_list, 1)
-]
+def main() -> int:
+    print("[INFO] 开始加载和预处理数据...")
 
-# 使用线程池并行处理
-with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-    future_to_task = {executor.submit(process_single_group, task): task for task in tasks}
-    
-    for future in as_completed(future_to_task):
-        try:
-            result = future.result()
-            if result is not None:
-                results.append(result)
-        except Exception as e:
-            print(f"  [ERROR] 处理分组失败: {e}")
-            task = future_to_task[future]
-            i, level_3rd, skill_type, group, _, _ = task
-            print(f"  [ERROR] 失败的分组: {level_3rd} / {skill_type}")
+    try:
+        # 加载标签数据
+        tags_df = read_csv_with_encoding(TAGS_CSV)
+        if not {'level_3rd', 'skill_type', 'tags'}.issubset(tags_df.columns):
+            raise ValueError(f"{TAGS_CSV.name} 必须包含 'level_3rd', 'skill_type', 'tags' 三列")
+        print(f"[INFO] 成功加载 {len(tags_df)} 行标签数据从 {TAGS_CSV.name}")
 
-# 按原始顺序排序
-results.sort(key=lambda x: x.get('_original_idx', 0))
-# 移除临时索引字段
-for result in results:
-    result.pop('_original_idx', None)
+        # 加载用户工作描述数据
+        user_df = read_csv_with_encoding(USER_DATA_CSV)
+        if not {'exp_type', 'work_lv3_name', 'work_description'}.issubset(user_df.columns):
+            raise ValueError(f"{USER_DATA_CSV.name} 必须包含 'exp_type', 'work_lv3_name', 'work_description' 列")
+        print(f"[INFO] 成功加载 {len(user_df)} 行用户数据从 {USER_DATA_CSV.name}")
 
-# 输出到文件
-if results:
-    print(f"\n[INFO] 全部处理完毕，正在将 {len(results)} 条结果写入 → {OUTPUT_CSV}")
-    result_df = pd.DataFrame(results)
-    result_df = result_df[[
-        'level_3rd', 'skill_type', 'original_cnt', 'add_cnt', 
-        'original_tags', 'suggested_add_tags'
-    ]]
-    result_df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig') 
-    print(f"[SUCCESS] ✅ 任务完成！结果已成功保存到：{OUTPUT_CSV}")
-else:
-    print("\n[INFO] 本次运行没有产生任何结果。")
+    except FileNotFoundError as e:
+        print(f"[ERROR] 文件未找到: {e}. 请确保脚本与数据文件在同一目录下。")
+        return 1
+    except ValueError as e:
+        print(f"[ERROR] {e}")
+        return 1
+    except Exception as e:
+        print(f"[ERROR] 读取文件时发生未知错误: {e}")
+        return 1
+
+    # 预处理：按三级类分组，聚合工作描述
+    print("[INFO] 正在聚合工作描述...")
+    work_descriptions: Dict[str, str] = {}
+    work_df = user_df[user_df['exp_type'] == 'WORK'].copy()
+    work_df.dropna(subset=['work_lv3_name', 'work_description'], inplace=True)
+
+    # 对每个三级分类，拼接其所有的工作描述
+    # 为避免 prompt 过长，这里限制每个岗位的总描述长度
+    MAX_DESC_LENGTH = 4000
+    for lv3_name, group in work_df.groupby('work_lv3_name'):
+        # 将所有描述用换行符合并，并截断到最大长度
+        full_desc = "\n---\n".join(group['work_description'].astype(str).unique())
+        work_descriptions[lv3_name] = full_desc[:MAX_DESC_LENGTH]
+
+    print(f"[INFO] 数据预处理完成，聚合了 {len(work_descriptions)} 个岗位的真实工作描述。")
+
+    # 主流程（并行版本）
+    keys = _keys()
+    max_workers = min(len(keys.api_keys), 10)  # 并行工作线程数
+    results: List[Dict] = []
+    groups_list = list(tags_df.groupby(['level_3rd', 'skill_type']))
+    total_groups = len(groups_list)
+    print(f"\n[INFO] 开始处理 {total_groups} 个标签分组（使用 {max_workers} 个并行线程）...")
+
+    # 准备任务列表
+    tasks = [
+        (i, level_3rd, skill_type, group, work_descriptions, total_groups)
+        for i, ((level_3rd, skill_type), group) in enumerate(groups_list, 1)
+    ]
+
+    # 使用线程池并行处理
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_task = {executor.submit(process_single_group, task): task for task in tasks}
+
+        for future in as_completed(future_to_task):
+            try:
+                result = future.result()
+                if result is not None:
+                    results.append(result)
+            except Exception as e:
+                print(f"  [ERROR] 处理分组失败: {e}")
+                task = future_to_task[future]
+                i, level_3rd, skill_type, group, _, _ = task
+                print(f"  [ERROR] 失败的分组: {level_3rd} / {skill_type}")
+
+    # 按原始顺序排序
+    results.sort(key=lambda x: x.get('_original_idx', 0))
+    # 移除临时索引字段
+    for result in results:
+        result.pop('_original_idx', None)
+
+    # 输出到文件
+    if results:
+        print(f"\n[INFO] 全部处理完毕，正在将 {len(results)} 条结果写入 → {OUTPUT_CSV}")
+        result_df = pd.DataFrame(results)
+        result_df = result_df[[
+            'level_3rd', 'skill_type', 'original_cnt', 'add_cnt',
+            'original_tags', 'suggested_add_tags'
+        ]]
+        result_df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
+        print(f"[SUCCESS] ✅ 任务完成！结果已成功保存到：{OUTPUT_CSV}")
+    else:
+        print("\n[INFO] 本次运行没有产生任何结果。")
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
