@@ -152,3 +152,6 @@ jobs_enriched.*
 何宇峰 简历.pdf
 Final Project Instruction.pdf
 项目说明文档.pdf
+
+# local agent settings
+.claude/

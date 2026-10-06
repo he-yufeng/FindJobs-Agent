@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.11"]
+        python-version: ["3.10", "3.13"]
 
     steps:
       - uses: actions/checkout@v6
@@ -29,7 +29,7 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          ruff check . --select=E9,F63,F7,F82 --target-version=py39
+          ruff check . --select=E9,F63,F7,F82 --target-version=py310
 
       - name: Run tests
         run: |
