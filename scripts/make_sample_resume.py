@@ -3,7 +3,7 @@
 Neither reportlab nor fpdf2 is a dependency, so this writes a minimal valid
 PDF by hand: one page, Helvetica, one text operator per line. The demo uploads
 this file through the normal /api/resume/upload flow, so it must stay
-extractable by PyPDF2 (ASCII only). Run from the repo root:
+extractable by pypdf (ASCII only). Run from the repo root:
 
     python scripts/make_sample_resume.py
 """
