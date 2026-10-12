@@ -154,9 +154,9 @@ Filter vocabularies are read from `/api/v1/jobs/facets` at runtime instead of be
 
 ### Job data sources
 
-The crawler knows 32 companies (`--list`), all fetched through the public job APIs that each careers site serves to job seekers. No login, no key, no page scraping behind a wall.
+The crawler registry only lists adapters verified live (`--list`), all fetched through the public job APIs that each careers site serves to job seekers. No login, no key, no page scraping behind a wall.
 
-As of the last refresh (2026-09), four targeted crawlers are live; the Remotive remote-jobs source was verified live on 2026-09-17:
+Last full verification 2026-10-13 (`python scripts/verify_crawlers_v2.py` reruns it on demand): six targeted crawlers are live, plus the Remotive remote-jobs source (verified 2026-09-17):
 
 | Source | Endpoint | Notes |
 |--------|----------|-------|
@@ -164,13 +164,15 @@ As of the last refresh (2026-09), four targeted crawlers are live; the Remotive 
 | ByteDance (字节跳动) | `jobs.bytedance.com` portal API | moved to the current POST payload; the old GET form is gone |
 | NetEase (网易) | public search API | social + campus |
 | Amazon | `amazon.jobs` search API | global, CN filter supported |
+| DJI (大疆) | Moka ATS (`apply.careers.dji.com`) | social; responses are AES-encrypted, decrypted locally (pycryptodome) |
+| Ctrip (携程) | Moka ATS (`app.mokahr.com`) | campus channel; adapter verified healthy, zero openings as of 2026-10 |
 | Remotive | `remotive.com/api/remote-jobs` | key-less remote-jobs API; full JD (HTML stripped to text) and apply links included |
 
 `data/latest_jobs.json` holds the latest snapshot: 1,180 postings across these four (refreshed 2026-09-24), committed so the pipeline has real data to chew on without a fresh crawl. `data/latest_enriched.jsonl` is the same set after LLM analysis (degree, major requirement, scored skill tags, job family), so the site and the matcher work out of the box with zero API spend.
 
 Skill tags only mean "the model found a genuine match in the technical label library": planning/design/operations jobs are never force-labeled, so an empty tag list is a legitimate result that reads as "non-technical role", not missing data.
 
-The other adapters (Baidu, Kuaishou, Xiaomi, Bilibili, DiDi, Pinduoduo, Huawei, Ctrip, DJI, NIO, XPeng, Li Auto, OPPO, VIVO, SenseTime, MiHoYo, SHEIN, Shopee, KE, Yuanfudao, Zuoyebang, Zhilian, Lagou, Microsoft, Google) were written against 2023-era endpoints that have since changed shape or started blocking plain requests; they currently return empty and need an adapter refresh. Alibaba, Meituan and JD go through `job_crawler_selenium.py` and want a local browser driver. If you rely on one of these, open an issue and it moves up the queue.
+Alibaba, Meituan and JD stay in the registry as Selenium adapters and want a local Chrome plus `webdriver-manager`. The other 2023-era adapters (Baidu, Kuaishou, Xiaomi, Bilibili, DiDi, Pinduoduo, Huawei, NIO, XPeng, Li Auto, OPPO, VIVO, SenseTime, MiHoYo, SHEIN, Shopee, KE, Yuanfudao, Zuoyebang, Zhilian, Lagou, Microsoft, Google) all failed the 2026-10-13 verification, mostly WAF gates or moved endpoints, and were removed from the registry; their code stays in git history as repair reference, and an issue asking for one moves it up the queue.
 
 ## API Endpoints
 

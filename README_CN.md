@@ -154,9 +154,9 @@ register_source(RemotiveSource(search="llm", category="software-dev", limit=100)
 
 ### 岗位数据来源
 
-爬虫收录了 32 家企业（`--list` 可查），全部走各家招聘官网面向求职者的公开职位 API，不需要登录、不需要 key、不绕反爬。
+爬虫注册表只收实测存活的适配器（`--list` 可查），全部走各家招聘官网面向求职者的公开职位 API，不需要登录、不需要 key、不绕反爬。
 
-最近一次全量刷新（2026-09）验证下来，4 家定向爬虫是活源；Remotive 远程聚合源 2026-09-17 实测可用：
+最近一次全量验证在 2026-10-13（`python scripts/verify_crawlers_v2.py` 可随时重跑）：6 家定向爬虫是活源；Remotive 远程聚合源 2026-09-17 实测可用：
 
 | 来源 | 接口 | 说明 |
 |------|------|------|
@@ -164,13 +164,15 @@ register_source(RemotiveSource(search="llm", category="software-dev", limit=100)
 | 字节跳动 | `jobs.bytedance.com` 门户 API | 已切到现在的 POST 请求格式，旧的 GET 已失效 |
 | 网易 | 公开搜索 API | 社招 + 校招 |
 | Amazon | `amazon.jobs` 搜索 API | 全球岗位，支持按国家过滤 |
+| 大疆 | Moka ATS（`apply.careers.dji.com`）| 社招；接口响应是 AES 加密，本地解密（pycryptodome） |
+| 携程 | Moka ATS（`app.mokahr.com`）| 校招频道；适配器实测健康，2026-10 当期 0 在招 |
 | Remotive | `remotive.com/api/remote-jobs` | 免 key 远程岗聚合，JD 全文（HTML 已转纯文本）和申请链接一次给齐 |
 
 `data/latest_jobs.json` 是最近一次抓取的快照，共 1,180 条岗位（以上 4 家，2026-09-24 刷新），已提交进仓库，不重新爬也有真实数据可跑。`data/latest_enriched.jsonl` 是同一批岗位跑完 LLM 分析的结果（学历、专业要求、带评分的技能标签、岗位族分类），网站和匹配开箱即用，零 API 花费。
 
 技能标签只代表"模型在纯技术标签库中找到了真实匹配"：策划/设计/运营类岗位没有强行凑标签，标签为空是合法结果，匹配与筛选时应把空标签当"非技术岗"信号而不是数据缺失。
 
-其余适配器（百度、快手、小米、哔哩哔哩、滴滴、拼多多、华为、携程、大疆、蔚来、小鹏、理想、OPPO、VIVO、商汤、米哈游、SHEIN、Shopee、贝壳、猿辅导、作业帮、智联、拉勾、Microsoft、Google）是照 2023 年的接口写的，这两年对方接口改了形态或开始拦裸请求，目前返回为空，需要逐个刷新适配。阿里、美团、京东走 `job_crawler_selenium.py`，要本机浏览器驱动。你正好需要其中某家，开个 issue，我优先修。
+阿里、美团、京东以 Selenium 适配器留在注册表，需要本机 Chrome 和 `webdriver-manager`。其余 2023 年接口的适配器（百度、快手、小米、哔哩哔哩、滴滴、拼多多、华为、蔚来、小鹏、理想、OPPO、VIVO、商汤、米哈游、SHEIN、Shopee、贝壳、猿辅导、作业帮、智联、拉勾、Microsoft、Google）在 2026-10-13 的验证里全部不通过，多数是反爬网关拦截或接口迁移，已从注册表移出；代码留在 git 历史里作修复参考，需要哪家开个 issue，我优先修。
 
 ## API 接口
 

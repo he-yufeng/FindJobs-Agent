@@ -5,12 +5,15 @@
 每家公司限制300个岗位，支持更多公司
 """
 
-import json
-import time
-import random
-import logging
 import argparse
+import base64
 import hashlib
+import html
+import json
+import logging
+import random
+import re
+import time
 from pathlib import Path
 from typing import Dict, List, Optional
 from abc import ABC, abstractmethod
@@ -371,185 +374,6 @@ class TencentCrawler(JobCrawlerBase):
         return self.jobs
 
 
-class AlibabaCrawler(JobCrawlerBase):
-    """阿里巴巴"""
-    @property
-    def company_name(self) -> str:
-        return "阿里巴巴"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://talent.alibaba.com/off_campus/position/list"
-            payload = {"pageSize": 50, "pageIndex": page, "language": "zh", "channel": "group_official_site"}
-            headers = {**DEFAULT_HEADERS, 'Content-Type': 'application/json'}
-            resp = self._request(url, method='POST', json=payload, headers=headers)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                positions = data.get('content', {}).get('data', {}).get('page', {}).get('result', [])
-                if not positions:
-                    break
-                for pos in positions:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': pos.get('name', ''),
-                        'job_id': f"ALI_{pos.get('code', '')}",
-                        'category': '校招' if pos.get('isSchool') else '社招',
-                        'location': ', '.join(pos.get('workLocations', [])) if pos.get('workLocations') else '',
-                        'job_type': pos.get('jobCategory', {}).get('name', '') if isinstance(pos.get('jobCategory'), dict) else '',
-                        'special_program': pos.get('department', {}).get('name', '') if isinstance(pos.get('department'), dict) else '',
-                        'job_description': pos.get('description', ''),
-                        'job_requirements': pos.get('requirement', ''),
-                        'apply_url': f"https://talent.alibaba.com/off-campus/position-detail?positionId={pos.get('code', '')}",
-                    }))
-                if page >= data.get('content', {}).get('data', {}).get('page', {}).get('totalPage', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class BaiduCrawler(JobCrawlerBase):
-    """百度"""
-    @property
-    def company_name(self) -> str:
-        return "百度"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        for recruit_type in ['SOCIAL', 'CAMPUS']:
-            if self._should_stop():
-                break
-            page = 1
-            while not self._should_stop():
-                url = "https://talent.baidu.com/httservice/getPostListNew"
-                payload = {"recruitType": recruit_type, "pageSize": 50, "curPage": page}
-                headers = {**DEFAULT_HEADERS, 'Content-Type': 'application/json'}
-                resp = self._request(url, method='POST', json=payload, headers=headers)
-                if not resp:
-                    break
-                try:
-                    data = resp.json()
-                    posts = data.get('data', {}).get('list', [])
-                    if not posts:
-                        break
-                    for post in posts:
-                        if self._should_stop():
-                            break
-                        self.jobs.append(self._normalize_job({
-                            'job_title': post.get('name', ''),
-                            'job_id': f"BD_{post.get('postId', '')}",
-                            'category': '校招' if recruit_type == 'CAMPUS' else '社招',
-                            'location': post.get('workPlace', ''),
-                            'job_type': post.get('serviceType', ''),
-                            'job_description': post.get('serviceCondition', ''),
-                            'job_requirements': post.get('workContent', ''),
-                            'apply_url': f"https://talent.baidu.com/jobs/detail/{post.get('postId', '')}",
-                        }))
-                    if page * 50 >= data.get('data', {}).get('total', 0):
-                        break
-                    page += 1
-                except:
-                    break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class MeituanCrawler(JobCrawlerBase):
-    """美团"""
-    @property
-    def company_name(self) -> str:
-        return "美团"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        for job_type in [1, 2]:
-            if self._should_stop():
-                break
-            offset = 0
-            while not self._should_stop():
-                url = "https://zhaopin.meituan.com/api/recruitment/v2/jobs"
-                params = {'limit': 50, 'offset': offset, 'jobType': job_type}
-                resp = self._request(url, params=params)
-                if not resp:
-                    break
-                try:
-                    data = resp.json()
-                    jobs = data.get('data', {}).get('list', [])
-                    if not jobs:
-                        break
-                    for job in jobs:
-                        if self._should_stop():
-                            break
-                        self.jobs.append(self._normalize_job({
-                            'job_title': job.get('name', ''),
-                            'job_id': f"MT_{job.get('id', '')}",
-                            'category': '校招' if job_type == 2 else '社招',
-                            'location': job.get('city', ''),
-                            'job_type': job.get('jobCategory', ''),
-                            'special_program': job.get('orgName', ''),
-                            'job_description': job.get('responsibility', ''),
-                            'job_requirements': job.get('requirement', ''),
-                            'apply_url': f"https://zhaopin.meituan.com/job-detail?jobId={job.get('id', '')}",
-                        }))
-                    if offset + 50 >= data.get('data', {}).get('total', 0):
-                        break
-                    offset += 50
-                except:
-                    break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class JDCrawler(JobCrawlerBase):
-    """京东"""
-    @property
-    def company_name(self) -> str:
-        return "京东"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://zhaopin.jd.com/web/job/job_list"
-            params = {'page': page, 'limit': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('jobName', ''),
-                        'job_id': f"JD_{job.get('jobId', '')}",
-                        'category': '社招',
-                        'location': job.get('workCity', ''),
-                        'job_type': job.get('jobType', ''),
-                        'special_program': job.get('deptName', ''),
-                        'job_description': job.get('jobDesc', ''),
-                        'job_requirements': job.get('jobRequire', ''),
-                        'apply_url': f"https://zhaopin.jd.com/web/job/job_detail?jobId={job.get('jobId', '')}",
-                    }))
-                if page * 50 >= data.get('data', {}).get('total', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
 class NeteaseCrawler(JobCrawlerBase):
     """网易"""
     @property
@@ -595,282 +419,6 @@ class NeteaseCrawler(JobCrawlerBase):
         return self.jobs
 
 
-class KuaishouCrawler(JobCrawlerBase):
-    """快手"""
-    @property
-    def company_name(self) -> str:
-        return "快手"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://zhaopin.kuaishou.cn/recruit/api/job/list"
-            params = {'page': page, 'pageSize': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('jobList', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('jobName', ''),
-                        'job_id': f"KS_{job.get('jobId', '')}",
-                        'category': job.get('jobType', '社招'),
-                        'location': job.get('workCity', ''),
-                        'job_type': job.get('jobCategory', ''),
-                        'job_description': job.get('jobResponsibility', ''),
-                        'job_requirements': job.get('jobRequirements', ''),
-                        'apply_url': f"https://zhaopin.kuaishou.cn/recruit/e/#/official/jobs/detail/{job.get('jobId', '')}",
-                    }))
-                if page * 50 >= data.get('data', {}).get('total', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class XiaomiCrawler(JobCrawlerBase):
-    """小米"""
-    @property
-    def company_name(self) -> str:
-        return "小米"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://hr.xiaomi.com/api/position/list"
-            params = {'pageNum': page, 'pageSize': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('rows', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('positionName', ''),
-                        'job_id': f"XM_{job.get('id', '')}",
-                        'category': job.get('recruitType', '社招'),
-                        'location': job.get('workCity', ''),
-                        'job_type': job.get('categoryName', ''),
-                        'job_description': job.get('requirement', ''),
-                        'job_requirements': job.get('description', ''),
-                        'apply_url': f"https://hr.xiaomi.com/position/{job.get('id', '')}",
-                    }))
-                if page * 50 >= data.get('data', {}).get('total', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class BilibiliCrawler(JobCrawlerBase):
-    """B站"""
-    @property
-    def company_name(self) -> str:
-        return "哔哩哔哩"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://jobs.bilibili.com/api/positions"
-            params = {'page': page, 'pageSize': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', ''),
-                        'job_id': f"BL_{job.get('id', '')}",
-                        'category': job.get('type', '社招'),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'job_requirements': job.get('requirement', ''),
-                        'apply_url': f"https://jobs.bilibili.com/position/{job.get('id', '')}",
-                    }))
-                if page * 50 >= data.get('data', {}).get('total', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class DidiCrawler(JobCrawlerBase):
-    """滴滴"""
-    @property
-    def company_name(self) -> str:
-        return "滴滴"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://talent.didiglobal.com/api/jobList"
-            params = {'page': page, 'pageSize': 50, 'language': 'zh'}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', ''),
-                        'job_id': f"DD_{job.get('id', '')}",
-                        'category': job.get('recruitType', '社招'),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'job_requirements': job.get('requirement', ''),
-                        'apply_url': f"https://talent.didiglobal.com/position/{job.get('id', '')}",
-                    }))
-                if page * 50 >= data.get('data', {}).get('total', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class PinduoduoCrawler(JobCrawlerBase):
-    """拼多多"""
-    @property
-    def company_name(self) -> str:
-        return "拼多多"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://careers.pinduoduo.com/api/position/list"
-            params = {'page': page, 'pageSize': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', ''),
-                        'job_id': f"PDD_{job.get('id', '')}",
-                        'category': job.get('type', '社招'),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'job_requirements': job.get('requirement', ''),
-                        'apply_url': f"https://careers.pinduoduo.com/position/{job.get('id', '')}",
-                    }))
-                if page * 50 >= data.get('data', {}).get('total', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class HuaweiCrawler(JobCrawlerBase):
-    """华为"""
-    @property
-    def company_name(self) -> str:
-        return "华为"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://career.huawei.com/reccampportal/portal5/position/api/position/queryPositions"
-            payload = {"pageIndex": page, "pageSize": 50}
-            headers = {**DEFAULT_HEADERS, 'Content-Type': 'application/json'}
-            resp = self._request(url, method='POST', json=payload, headers=headers)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('positionName', ''),
-                        'job_id': f"HW_{job.get('positionId', '')}",
-                        'category': job.get('positionType', ''),
-                        'location': job.get('workLocation', ''),
-                        'job_type': job.get('jobType', ''),
-                        'job_description': job.get('requirement', ''),
-                        'job_requirements': job.get('description', ''),
-                        'apply_url': f"https://career.huawei.com/reccampportal/campus/position/{job.get('positionId', '')}",
-                    }))
-                if page * 50 >= data.get('data', {}).get('total', 0):
-                    break
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class ByteDanceCrawler(JobCrawlerBase):
-    """字节跳动 - 从文件加载"""
-    @property
-    def company_name(self) -> str:
-        return "字节跳动"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"📂 {self.company_name} (从文件加载)...")
-        for fname in ['bytedance_jobs.json', 'bytedance_jobs copy.json']:
-            fpath = ROOT_DIR / fname
-            if fpath.exists():
-                try:
-                    with open(fpath, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    for item in data[:self.max_jobs]:
-                        self.jobs.append(self._normalize_job(item))
-                    logger.info(f"  └─ {len(self.jobs)} 个")
-                    return self.jobs
-                except:
-                    pass
-        logger.warning("  └─ 未找到数据文件")
-        return []
-
 
 # ==================== 外企 ====================
 
@@ -911,411 +459,6 @@ class AmazonCrawler(JobCrawlerBase):
                 if offset + 100 >= data.get('hits', 0):
                     break
                 offset += 100
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class MicrosoftCrawler(JobCrawlerBase):
-    """Microsoft"""
-    @property
-    def company_name(self) -> str:
-        return "Microsoft"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        skip = 0
-        while not self._should_stop():
-            url = "https://gcsservices.careers.microsoft.com/search/api/v1/search"
-            params = {'l': 'zh_cn', 'pg': skip//100+1, 'pgSz': 100, 'o': skip, 'flt': 'true'}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('operationResult', {}).get('result', {}).get('jobs', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    props = job.get('properties', {})
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('title', ''),
-                        'job_id': f"MS_{job.get('jobId', '')}",
-                        'category': props.get('employmentType', ''),
-                        'location': ', '.join(props.get('locations', [])) if props.get('locations') else '',
-                        'job_type': props.get('discipline', ''),
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://jobs.careers.microsoft.com/global/en/job/{job.get('jobId', '')}",
-                    }))
-                total = data.get('operationResult', {}).get('result', {}).get('totalJobs', 0)
-                if skip + 100 >= total:
-                    break
-                skip += 100
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class GoogleCrawler(JobCrawlerBase):
-    """Google"""
-    @property
-    def company_name(self) -> str:
-        return "Google"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page_token = ""
-        while not self._should_stop():
-            url = "https://careers.google.com/api/v3/search/"
-            params = {'company': 'Google', 'hl': 'zh_CN', 'location': 'China', 'page_size': 100, 'q': ''}
-            if page_token:
-                params['page_token'] = page_token
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('jobs', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    locs = [loc.get('display', '') for loc in job.get('locations', [])]
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('title', ''),
-                        'job_id': f"GOOG_{job.get('id', '')}",
-                        'category': 'Full-time',
-                        'location': ', '.join(locs),
-                        'job_type': ', '.join(job.get('categories', [])),
-                        'job_description': job.get('description', ''),
-                        'job_requirements': job.get('qualifications', ''),
-                        'apply_url': f"https://careers.google.com/jobs/results/{job.get('id', '')}",
-                    }))
-                page_token = data.get('next_page_token', '')
-                if not page_token:
-                    break
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-# ==================== 新增公司 ====================
-
-class CtripCrawler(JobCrawlerBase):
-    """携程"""
-    @property
-    def company_name(self) -> str:
-        return "携程"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://careers.ctrip.com/api/jobs"
-            params = {'pageIndex': page, 'pageSize': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', []) or data.get('jobs', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('jobName', job.get('title', '')),
-                        'job_id': f"CTRIP_{job.get('jobId', job.get('id', ''))}",
-                        'category': job.get('recruitType', '社招'),
-                        'location': job.get('workCity', job.get('location', '')),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('jobDesc', job.get('description', '')),
-                        'apply_url': f"https://careers.ctrip.com/job/{job.get('jobId', job.get('id', ''))}",
-                    }))
-                page += 1
-                if len(self.jobs) >= self.max_jobs:
-                    break
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class DJICrawler(JobCrawlerBase):
-    """大疆"""
-    @property
-    def company_name(self) -> str:
-        return "大疆"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://we.dji.com/api/v1/jobs"
-            params = {'page': page, 'size': 50, 'lang': 'zh-CN'}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', []) or data.get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', job.get('title', '')),
-                        'job_id': f"DJI_{job.get('id', '')}",
-                        'category': job.get('type', '社招'),
-                        'location': job.get('city', job.get('location', '')),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://we.dji.com/zh-CN/position/{job.get('id', '')}",
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class NIOCrawler(JobCrawlerBase):
-    """蔚来"""
-    @property
-    def company_name(self) -> str:
-        return "蔚来"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://nio.jobs.feishu.cn/api/v1/search/job"
-            payload = {"offset": (page-1)*20, "limit": 20, "keyword": ""}
-            headers = {**DEFAULT_HEADERS, 'Content-Type': 'application/json'}
-            resp = self._request(url, method='POST', json=payload, headers=headers)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('job_list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('title', ''),
-                        'job_id': f"NIO_{job.get('id', '')}",
-                        'category': job.get('recruit_type', {}).get('name', ''),
-                        'location': job.get('city', {}).get('name', ''),
-                        'job_type': job.get('job_function', {}).get('name', ''),
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://nio.jobs.feishu.cn/job/{job.get('id', '')}",
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class XPengCrawler(JobCrawlerBase):
-    """小鹏"""
-    @property
-    def company_name(self) -> str:
-        return "小鹏"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://job.xiaopeng.com/api/job/list"
-            params = {'page': page, 'size': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', ''),
-                        'job_id': f"XPENG_{job.get('id', '')}",
-                        'category': job.get('type', ''),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://job.xiaopeng.com/job/{job.get('id', '')}",
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class LiAutoCrawler(JobCrawlerBase):
-    """理想"""
-    @property
-    def company_name(self) -> str:
-        return "理想汽车"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://www.lixiang.com/api/job/list"
-            params = {'page': page, 'size': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', ''),
-                        'job_id': f"LI_{job.get('id', '')}",
-                        'category': job.get('type', ''),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://www.lixiang.com/job/{job.get('id', '')}",
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class OPPOCrawler(JobCrawlerBase):
-    """OPPO"""
-    @property
-    def company_name(self) -> str:
-        return "OPPO"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://careers.oppo.com/campus/api/position/list"
-            params = {'pageNo': page, 'pageSize': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', []) or data.get('result', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('positionName', job.get('name', '')),
-                        'job_id': f"OPPO_{job.get('positionId', job.get('id', ''))}",
-                        'category': job.get('recruitType', ''),
-                        'location': job.get('workCity', job.get('city', '')),
-                        'job_type': job.get('positionType', ''),
-                        'job_description': job.get('positionDesc', job.get('description', '')),
-                        'apply_url': f"https://careers.oppo.com/campus/position/{job.get('positionId', job.get('id', ''))}",
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class VIVOCrawler(JobCrawlerBase):
-    """VIVO"""
-    @property
-    def company_name(self) -> str:
-        return "VIVO"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://hr.vivo.com/api/job/list"
-            params = {'page': page, 'size': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', ''),
-                        'job_id': f"VIVO_{job.get('id', '')}",
-                        'category': job.get('type', ''),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://hr.vivo.com/job/{job.get('id', '')}",
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class SenseTimeCrawler(JobCrawlerBase):
-    """商汤"""
-    @property
-    def company_name(self) -> str:
-        return "商汤科技"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://hr.sensetime.com/api/job/list"
-            params = {'page': page, 'size': 50}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('list', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('name', ''),
-                        'job_id': f"ST_{job.get('id', '')}",
-                        'category': job.get('type', ''),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('category', ''),
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://hr.sensetime.com/job/{job.get('id', '')}",
-                    }))
-                page += 1
             except:
                 break
         logger.info(f"  └─ {len(self.jobs)} 个")
@@ -1382,224 +525,157 @@ class ByteDanceAPICrawler(JobCrawlerBase):
         }
 
 
-# ==================== 招聘平台 ====================
+# ==================== Moka ATS 通用 ====================
 
-class LagouCrawler(JobCrawlerBase):
-    """拉勾网 - 多家公司"""
-    @property
-    def company_name(self) -> str:
-        return "拉勾网"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        # 尝试不同的API端点
-        endpoints = [
-            "https://www.lagou.com/wn/zhaopin",
-            "https://a.]lagou.com/position/positionAjax.json",
-        ]
-        while not self._should_stop():
-            url = "https://www.lagou.com/wn/jobs"
-            params = {'pn': page, 'kd': '', 'city': '全国'}
-            resp = self._request(url, params=params)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('content', {}).get('positionResult', {}).get('result', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('positionName', ''),
-                        'job_id': f"LG_{job.get('positionId', '')}",
-                        'category': job.get('education', ''),
-                        'location': job.get('city', ''),
-                        'job_type': job.get('industryField', ''),
-                        'special_program': job.get('companyFullName', ''),
-                        'job_description': job.get('positionAdvantage', ''),
-                        'apply_url': f"https://www.lagou.com/wn/jobs/{job.get('positionId', '')}",
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
+class MokaCrawler(JobCrawlerBase):
+    """Moka (mokahr) 托管招聘站的通用爬虫。
 
+    带会话 cookie 过阿里云 WAF 拿到站点页，从 init-data 里解析 aesIv；职位
+    列表走 POST /api/outer/ats-apply/website/jobs/v2，响应体是 AES-CBC 加密
+    （key 是响应里的 necromancer，iv 就是 aesIv），解密后按统一 schema 归一化。
+    不同公司只是 host / channel / org / site_id 不同。
+    """
 
-class ZhilianCrawler(JobCrawlerBase):
-    """智联招聘"""
-    @property
-    def company_name(self) -> str:
-        return "智联招聘"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://fe-api.zhaopin.com/c/i/sou"
-            params = {'start': (page-1)*90, 'pageSize': 90, 'cityId': '489', 'kw': ''}
-            headers = {**DEFAULT_HEADERS, 'Referer': 'https://sou.zhaopin.com/'}
-            resp = self._request(url, params=params, headers=headers)
-            if not resp:
-                break
-            try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('results', [])
-                if not jobs:
-                    break
-                for job in jobs:
-                    if self._should_stop():
-                        break
-                    self.jobs.append(self._normalize_job({
-                        'job_title': job.get('jobName', ''),
-                        'job_id': f"ZL_{job.get('number', '')}",
-                        'category': job.get('eduLevel', {}).get('name', ''),
-                        'location': job.get('city', {}).get('display', ''),
-                        'job_type': job.get('jobType', {}).get('name', ''),
-                        'special_program': job.get('company', {}).get('name', ''),
-                        'job_description': job.get('welfare', ''),
-                        'apply_url': job.get('positionURL', ''),
-                    }))
-                page += 1
-            except:
-                break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-class Job51Crawler(JobCrawlerBase):
-    """前程无忧"""
-    @property
-    def company_name(self) -> str:
-        return "前程无忧"
-    
-    def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        page = 1
-        while not self._should_stop():
-            url = "https://search.51job.com/list/010000,000000,0000,00,9,99,+,2,{}.html".format(page)
-            resp = self._request(url)
-            if not resp:
-                break
-            # 51job返回HTML，这里暂时跳过
-            break
-        logger.info(f"  └─ {len(self.jobs)} 个")
-        return self.jobs
-
-
-# 尝试使用飞书招聘API获取多家公司数据
-class FeishuJobsCrawler(JobCrawlerBase):
-    """飞书招聘 - 多家公司"""
-    def __init__(self, company_code: str, company_name: str, max_jobs: int = MAX_JOBS_PER_COMPANY):
+    def __init__(self, host: str, channel: str, org: str, site_id: str,
+                 company_name: str, max_jobs: int = MAX_JOBS_PER_COMPANY):
         super().__init__(max_jobs)
-        self._company_code = company_code
+        self._host = host
+        self._channel = channel
+        self._org = org
+        self._site_id = site_id
         self._company_name = company_name
-    
+
     @property
     def company_name(self) -> str:
         return self._company_name
-    
+
+    @property
+    def site_url(self) -> str:
+        return f"https://{self._host}/{self._channel}/{self._org}/{self._site_id}"
+
+    def _get_aes_iv(self) -> Optional[str]:
+        # 首次请求通常只拿到阿里云 WAF 的 acw_tc cookie 和一个近乎空的页面，
+        # 带 cookie 再请求一次才是完整站点页
+        for _ in range(2):
+            resp = self._request(self.site_url)
+            if not resp or 'init-data' not in resp.text:
+                continue
+            m = re.search(r'id="init-data"[^>]*value="(.*?)"', resp.text, re.S)
+            if not m:
+                continue
+            try:
+                data = json.loads(html.unescape(m.group(1)))
+            except ValueError:
+                continue
+            iv = data.get('aesIv')
+            if iv:
+                return iv
+        return None
+
+    @staticmethod
+    def _decrypt(payload: Dict, iv: str) -> Dict:
+        try:
+            from Crypto.Cipher import AES
+        except ImportError as e:
+            raise RuntimeError("Moka 适配器需要 pycryptodome: pip install pycryptodome") from e
+        ct = base64.b64decode(payload['data'])
+        pt = AES.new(payload['necromancer'].encode(), AES.MODE_CBC, iv.encode()).decrypt(ct)
+        return json.loads(pt[:-pt[-1]].decode('utf-8'))
+
     def crawl(self) -> List[Dict]:
-        logger.info(f"🚀 {self.company_name}...")
-        offset = 0
+        logger.info(f"🚀 {self.company_name} (Moka)...")
+        iv = self._get_aes_iv()
+        if not iv:
+            logger.warning(f"  {self.company_name}: 拿不到 aesIv，站点结构可能变了")
+            return self.jobs
+        page = 1
         while not self._should_stop():
-            url = f"https://{self._company_code}.jobs.feishu.cn/api/v1/search/job"
-            payload = {"offset": offset, "limit": 20, "keyword": ""}
-            headers = {**DEFAULT_HEADERS, 'Content-Type': 'application/json'}
+            url = f"https://{self._host}/api/outer/ats-apply/website/jobs/v2"
+            payload = {
+                "orgId": self._org, "siteId": self._site_id,
+                "pageNo": page, "pageSize": 50,
+                "locale": "zh-CN", "needStat": True,
+            }
+            headers = {**DEFAULT_HEADERS, 'Content-Type': 'application/json', 'Referer': self.site_url}
             resp = self._request(url, method='POST', json=payload, headers=headers)
             if not resp:
                 break
             try:
-                data = resp.json()
-                jobs = data.get('data', {}).get('job_list', [])
+                body = resp.json()
+                data = self._decrypt(body, iv) if 'necromancer' in body else body
+                jobs = data.get('data', {}).get('jobs', [])
                 if not jobs:
                     break
                 for job in jobs:
                     if self._should_stop():
                         break
-                    city = job.get('city', {})
-                    city_name = city.get('name', '') if isinstance(city, dict) else str(city)
+                    locations = job.get('locations') or []
+                    city = ' / '.join(dict.fromkeys(
+                        loc.get('cityName', '') for loc in locations if loc.get('cityName')
+                    ))
                     self.jobs.append(self._normalize_job({
                         'job_title': job.get('title', ''),
-                        'job_id': f"{self._company_code}_{job.get('id', '')}",
-                        'category': job.get('recruit_type', {}).get('name', '') if isinstance(job.get('recruit_type'), dict) else '',
-                        'location': city_name,
-                        'job_type': job.get('job_function', {}).get('name', '') if isinstance(job.get('job_function'), dict) else '',
-                        'job_description': job.get('description', ''),
-                        'apply_url': f"https://{self._company_code}.jobs.feishu.cn/job/{job.get('id', '')}",
+                        'job_id': f"{self._org}_{job.get('id', '')}",
+                        'category': '校招' if 'campus' in self._channel else '社招',
+                        'location': city,
+                        'job_description': _strip_html(job.get('jobDescription', '')),
+                        'apply_url': f"{self.site_url}#/job/{job.get('id', '')}",
                     }))
-                offset += 20
-            except:
+                total = data.get('data', {}).get('jobStats', {}).get('total', 0)
+                if page * 50 >= total:
+                    break
+                page += 1
+            except (ValueError, KeyError, RuntimeError) as e:
+                logger.warning(f"  {self.company_name}: 解析失败（{e}）")
                 break
         logger.info(f"  └─ {len(self.jobs)} 个")
         return self.jobs
 
 
-# 飞书招聘公司列表
-def create_feishu_crawler(company_code: str, company_name: str):
-    class SpecificFeishuCrawler(FeishuJobsCrawler):
-        def __init__(self, max_jobs=MAX_JOBS_PER_COMPANY):
-            super().__init__(company_code, company_name, max_jobs)
-    return SpecificFeishuCrawler
+def _strip_html(text: str) -> str:
+    text = re.sub(r'<br\s*/?>', '\n', text)
+    text = re.sub(r'</p>\s*<p[^>]*>', '\n', text)
+    return re.sub(r'<[^>]+>', '', text).replace('&nbsp;', ' ').strip()
+
+
+class DJICrawler(MokaCrawler):
+    """大疆：社招在 Moka（we.dji.com 的旧接口已下线）"""
+    def __init__(self, max_jobs: int = MAX_JOBS_PER_COMPANY):
+        super().__init__('apply.careers.dji.com', 'social-recruitment',
+                         'dji', '170070', '大疆', max_jobs)
+
+
+class CtripCrawler(MokaCrawler):
+    """携程：校招在 Moka（careers.ctrip.com 的自研接口已下线）"""
+    def __init__(self, max_jobs: int = MAX_JOBS_PER_COMPANY):
+        super().__init__('app.mokahr.com', 'campus-recruitment',
+                         'trip', '117988', '携程', max_jobs)
 
 
 # ==================== 爬虫注册表 ====================
+# 2026-10-13 全量实测（scripts/verify_crawlers_v2.py）：只保留当时能返回岗位的
+# 适配器。实测不通过的旧适配器已移出，代码留在 git 历史里备修复参考；要复活
+# 某家，先跑 verify 脚本摸清接口现状再改。
 
 CRAWLERS = {
-    # 国内大厂 - 已验证可用 (API)
+    # API 适配器 - 2026-10-13 实测可用
     'tencent': TencentCrawler,
     'netease': NeteaseCrawler,
     'bytedance': ByteDanceAPICrawler,
-    # 国内大厂 - Selenium版 (增强抗反爬)
+    'amazon': AmazonCrawler,
+    # Moka ATS - 同日实测可用
+    'dji': DJICrawler,
+    'ctrip': CtripCrawler,
+    # Selenium 版 - 需要本机 Chrome，自动验证不覆盖
     'alibaba': AlibabaSeleniumCrawler,
     'meituan': MeituanSeleniumCrawler,
     'jd': JDSeleniumCrawler,
-    # 其他国内大厂 (API)
-    'baidu': BaiduCrawler,
-    'kuaishou': KuaishouCrawler,
-    'xiaomi': XiaomiCrawler,
-    'bilibili': BilibiliCrawler,
-    'didi': DidiCrawler,
-    'pinduoduo': PinduoduoCrawler,
-    'huawei': HuaweiCrawler,
-    # 新增公司
-    'ctrip': CtripCrawler,
-    'dji': DJICrawler,
-    'nio': NIOCrawler,
-    'xpeng': XPengCrawler,
-    'li': LiAutoCrawler,
-    'oppo': OPPOCrawler,
-    'vivo': VIVOCrawler,
-    'sensetime': SenseTimeCrawler,
-    # 飞书招聘平台公司
-    'mihoyo': create_feishu_crawler('mihoyo', '米哈游'),
-    'shein': create_feishu_crawler('shein', 'SHEIN'),
-    'shopee': create_feishu_crawler('shopee', 'Shopee'),
-    'ke': create_feishu_crawler('ke', '贝壳找房'),
-    'yuanfudao': create_feishu_crawler('yuanfudao', '猿辅导'),
-    'zuoyebang': create_feishu_crawler('zuoyebang', '作业帮'),
-    # 招聘平台
-    'zhilian': ZhilianCrawler,
-    'lagou': LagouCrawler,
-    # 外企
-    'amazon': AmazonCrawler,
-    'microsoft': MicrosoftCrawler,
-    'google': GoogleCrawler,
 }
 
 NAMES = {
-    'tencent': '腾讯', 'alibaba': '阿里巴巴', 'baidu': '百度', 'meituan': '美团',
-    'jd': '京东', 'netease': '网易', 'kuaishou': '快手', 'xiaomi': '小米',
-    'bilibili': '哔哩哔哩', 'didi': '滴滴', 'pinduoduo': '拼多多', 'huawei': '华为',
-    'bytedance': '字节跳动', 'ctrip': '携程', 'dji': '大疆', 'nio': '蔚来',
-    'xpeng': '小鹏', 'li': '理想汽车', 'oppo': 'OPPO', 'vivo': 'VIVO',
-    'sensetime': '商汤科技', 'mihoyo': '米哈游', 'shein': 'SHEIN', 'shopee': 'Shopee',
-    'ke': '贝壳找房', 'yuanfudao': '猿辅导', 'zuoyebang': '作业帮',
-    'zhilian': '智联招聘', 'lagou': '拉勾网',
-    'amazon': 'Amazon', 'microsoft': 'Microsoft', 'google': 'Google',
+    'tencent': '腾讯', 'netease': '网易', 'bytedance': '字节跳动', 'amazon': 'Amazon',
+    'dji': '大疆', 'ctrip': '携程',
+    'alibaba': '阿里巴巴', 'meituan': '美团', 'jd': '京东',
 }
 
 

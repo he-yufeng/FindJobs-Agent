@@ -3,5 +3,6 @@ flask-cors>=4.0.0
 pandas>=2.1.4
 requests>=2.31.0
 pypdf>=4.0.0
+pycryptodome>=3.20.0
 urllib3>=1.26.0
 gunicorn>=21.2.0
