@@ -1,0 +1,192 @@
+[
+  {
+    "name": "backend-java-senior",
+    "note": "6 年 Java 后端主力，带过小团队；Python 只写脚本，Vue 只看得懂",
+    "profile_rows": [
+      {
+        "exp_type": "WORK",
+        "work_company": "某电商公司",
+        "work_position": "高级后端工程师",
+        "work_start_date": "2020-07",
+        "work_end_date": "2026-06",
+        "work_description": "负责订单与库存核心链路，Java + Spring Boot 微服务，MySQL 分库分表，Redis 缓存与削峰，Kafka 做订单事件驱动；带过 4 人小组，主导过两次大促容量规划和 JVM 调优。偶尔用 Python 写对账脚本。"
+      },
+      {
+        "exp_type": "EDU",
+        "edu_school": "某理工大学",
+        "edu_major": "计算机科学与技术",
+        "edu_start_date": "2016-09",
+        "edu_end_date": "2020-06"
+      }
+    ],
+    "expected": {
+      "Java": 5,
+      "Spring Boot": 5,
+      "MySQL": 4,
+      "Redis": 4,
+      "Kafka": 4,
+      "JVM 调优": 4,
+      "Python": 2,
+      "Vue": 1
+    }
+  },
+  {
+    "name": "frontend-react-junior",
+    "note": "1.5 年前端，React 为主，工程化只用过现成配置",
+    "profile_rows": [
+      {
+        "exp_type": "WORK",
+        "work_company": "某 SaaS 创业公司",
+        "work_position": "前端工程师",
+        "work_start_date": "2025-01",
+        "work_end_date": "2026-06",
+        "work_description": "用 React 18 + TypeScript 开发后台管理系统，写过十几个业务页面和通用组件，熟悉 Hooks，用 React Query 管理服务端状态；构建走公司现成的 Vite 配置，没自己调过。业余看过一点 Vue 文档。"
+      },
+      {
+        "exp_type": "EDU",
+        "edu_school": "某师范大学",
+        "edu_major": "软件工程",
+        "edu_start_date": "2021-09",
+        "edu_end_date": "2025-06"
+      }
+    ],
+    "expected": {
+      "React": 3,
+      "TypeScript": 3,
+      "Hooks 设计": 3,
+      "CSS": 3,
+      "React Query": 3,
+      "Vite": 2,
+      "Vue": 1,
+      "Webpack": 1
+    }
+  },
+  {
+    "name": "ml-recsys-mid",
+    "note": "3 年推荐算法，训练部署都跟，C++ 只读过代码",
+    "profile_rows": [
+      {
+        "exp_type": "WORK",
+        "work_company": "某内容平台",
+        "work_position": "推荐算法工程师",
+        "work_start_date": "2023-07",
+        "work_end_date": "2026-06",
+        "work_description": "负责信息流推荐的粗排与精排模型迭代，Python + PyTorch 训练，做过特征工程、A/B 实验和离线评估；用 vLLM 部署过内部的排序小模型，写过 Flink SQL 的实时特征。线上 serving 的 C++ 代码只读过没写过。"
+      },
+      {
+        "exp_type": "EDU",
+        "edu_school": "某大学",
+        "edu_major": "人工智能",
+        "edu_start_date": "2020-09",
+        "edu_end_date": "2023-06"
+      }
+    ],
+    "expected": {
+      "Python": 4,
+      "PyTorch": 4,
+      "机器学习": 4,
+      "深度学习": 4,
+      "特征工程": 4,
+      "A/B 实验": 4,
+      "Flink SQL": 3,
+      "vLLM/SGLang": 2,
+      "C++": 2
+    }
+  },
+  {
+    "name": "sre-devops-senior",
+    "note": "5 年 SRE，K8s 和可观测性是主场，开发语言只有 Go 熟练",
+    "profile_rows": [
+      {
+        "exp_type": "WORK",
+        "work_company": "某云厂商",
+        "work_position": "SRE 工程师",
+        "work_start_date": "2021-03",
+        "work_end_date": "2026-06",
+        "work_description": "管理三个生产 Kubernetes 集群（共 800+ 节点），用 Terraform 管理多云资源，Prometheus + Grafana 搭监控告警体系，写过 Operator 做中间件自动化运维；日常工具链用 Go 开发，Ansible 做遗留虚机批量变更。主导过两次大故障的根因分析和复盘。"
+      },
+      {
+        "exp_type": "EDU",
+        "edu_school": "某工业大学",
+        "edu_major": "网络工程",
+        "edu_start_date": "2017-09",
+        "edu_end_date": "2021-06"
+      }
+    ],
+    "expected": {
+      "Kubernetes": 5,
+      "Docker": 5,
+      "Prometheus": 4,
+      "Grafana": 4,
+      "Terraform": 4,
+      "Operator 开发": 4,
+      "Go": 4,
+      "Ansible": 4,
+      "故障复盘": 4,
+      "Java": 1
+    }
+  },
+  {
+    "name": "ios-swift-mid",
+    "note": "4 年 iOS，SwiftUI 新项目 UIKit 老项目都碰，跨端只试过 Flutter  demo",
+    "profile_rows": [
+      {
+        "exp_type": "WORK",
+        "work_company": "某工具类 App 公司",
+        "work_position": "iOS 工程师",
+        "work_start_date": "2022-07",
+        "work_end_date": "2026-06",
+        "work_description": "负责主 App 的订阅与设置模块，老模块用 UIKit + Objective-C 维护，新页面全部 SwiftUI + Combine；写过 XCTest 单元测试和 UI 测试，做过启动优化和包体积优化。Flutter 只跟着教程跑通过 demo。"
+      },
+      {
+        "exp_type": "EDU",
+        "edu_school": "某科技大学",
+        "edu_major": "电子信息工程",
+        "edu_start_date": "2018-09",
+        "edu_end_date": "2022-06"
+      }
+    ],
+    "expected": {
+      "Swift": 4,
+      "SwiftUI": 4,
+      "UIKit": 4,
+      "Objective-C": 3,
+      "Combine": 3,
+      "XCTest": 3,
+      "启动优化": 3,
+      "Flutter": 1
+    }
+  },
+  {
+    "name": "quant-researcher-junior",
+    "note": "2 年量化研究，pandas 一把梭，工程能力一般",
+    "profile_rows": [
+      {
+        "exp_type": "WORK",
+        "work_company": "某私募量化团队",
+        "work_position": "量化研究员",
+        "work_start_date": "2024-07",
+        "work_end_date": "2026-06",
+        "work_description": "做股票中频因子研究：用 Python + Pandas/NumPy 做因子挖掘和检验，维护团队的回测框架，做过统计套利策略的样本外验证；写研究报告和复盘。工程侧只用到 Git 和简单的 Shell，C++ 交易系统是别的组在维护。"
+      },
+      {
+        "exp_type": "EDU",
+        "edu_school": "某财经大学",
+        "edu_major": "金融工程",
+        "edu_start_date": "2020-09",
+        "edu_end_date": "2024-06"
+      }
+    ],
+    "expected": {
+      "Python": 4,
+      "Pandas": 4,
+      "NumPy": 4,
+      "因子挖掘": 4,
+      "因子检验": 4,
+      "回测框架": 4,
+      "统计套利": 3,
+      "样本外验证": 3,
+      "C++": 2
+    }
+  }
+]
