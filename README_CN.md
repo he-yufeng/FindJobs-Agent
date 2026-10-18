@@ -3,6 +3,7 @@
 <img src="docs/banner.png" alt="FindJobs-Agent" width="100%">
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI](https://img.shields.io/pypi/v/findjobs-agent.svg)](https://pypi.org/project/findjobs-agent/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/he-yufeng/FindJobs-Agent/actions/workflows/ci.yml)
 
@@ -95,6 +96,8 @@ cd FindJobs-Agent
 
 ### 2. 安装后端依赖
 ```bash
+pip install findjobs-agent   # 直接从 PyPI 装
+# 或者本仓开发模式：
 pip install -e .
 ```
 
