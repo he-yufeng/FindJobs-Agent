@@ -126,6 +126,16 @@ CREATE INDEX IF NOT EXISTS idx_interview_messages_session
 ON interview_messages (session_id, seq)
 """
 
+_CRAWL_SEEN_SCHEMA = """
+CREATE TABLE IF NOT EXISTS crawl_seen (
+    source TEXT NOT NULL,
+    job_key TEXT NOT NULL,
+    first_seen TEXT NOT NULL,
+    last_seen TEXT NOT NULL,
+    PRIMARY KEY (source, job_key)
+)
+"""
+
 _INSERT = (
     f"INSERT OR REPLACE INTO jobs ({', '.join(JOB_COLUMNS)}) "
     f"VALUES ({', '.join(['?'] * len(JOB_COLUMNS))})"
@@ -146,6 +156,7 @@ def init_db(db_path: str | Path) -> None:
         conn.execute(_INTERVIEW_SESSIONS_SCHEMA)
         conn.execute(_INTERVIEW_MESSAGES_SCHEMA)
         conn.execute(_INTERVIEW_MESSAGES_INDEX)
+        conn.execute(_CRAWL_SEEN_SCHEMA)
 
 
 def count_jobs(db_path: str | Path) -> int:
@@ -192,6 +203,34 @@ def load_job_ids(db_path: str | Path) -> set[str]:
     with _connect(db_path) as conn:
         rows = conn.execute("SELECT job_id FROM jobs").fetchall()
     return {str(row[0]) for row in rows}
+
+
+def load_seen_keys(db_path: str | Path, source: str) -> set[str]:
+    """Job keys a previous crawl already fetched from ``source``."""
+    if not Path(db_path).exists():
+        return set()
+    init_db(db_path)
+    with _connect(db_path) as conn:
+        rows = conn.execute(
+            "SELECT job_key FROM crawl_seen WHERE source = ?", (source,)
+        ).fetchall()
+    return {str(row[0]) for row in rows}
+
+
+def mark_seen(db_path: str | Path, source: str, job_keys: list[str]) -> int:
+    """Record freshly fetched keys for ``source``; refresh last_seen on repeats."""
+    if not job_keys:
+        return 0
+    init_db(db_path)
+    now = datetime.now().isoformat(timespec="seconds")
+    with _connect(db_path) as conn:
+        conn.executemany(
+            "INSERT INTO crawl_seen (source, job_key, first_seen, last_seen) "
+            "VALUES (?, ?, ?, ?) "
+            "ON CONFLICT(source, job_key) DO UPDATE SET last_seen = excluded.last_seen",
+            [(source, key, now, now) for key in job_keys],
+        )
+    return len(job_keys)
 
 
 def import_csv(db_path: str | Path, csv_path: str | Path) -> int:

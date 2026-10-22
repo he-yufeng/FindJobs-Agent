@@ -51,6 +51,7 @@ Four pieces wired into one flow: a crawler pulls postings from company career si
 - **AI mock interview** — generates questions from any job description and runs a multi-turn interview with real-time feedback.
 - **Demo mode**: set `FINDJOBS_DEMO=1` to run the full app offline with seeded sample jobs, a bundled sample resume, and a deterministic stub LLM instead of a paid key.
 - **SQLite persistence** — analyzed postings are stored in a local `jobs.db`; existing CSV data is migrated automatically on first run, with CSV/JSON as fallback. Uploaded resumes and mock-interview transcripts live in the same database, so restarting the API server no longer wipes them.
+- **Incremental crawls** — `python pipeline.py --incremental` keeps a seen-ledger in `jobs.db`: postings a previous run already fetched skip the analysis step and the LLM budget, and sources that list newest-first (Tencent, verified against the live API) stop paging once a full page is already-seen. Repeats report "pulled X, new Y" per source; a run with nothing new skips analysis and export entirely.
 
 ## Project Structure
 
@@ -200,7 +201,6 @@ Alibaba, Meituan and JD stay in the registry as Selenium adapters and want a loc
 Crawl, analyze, resume match, mock interview, and the application board all work end to end. The next steps widen the funnel and get closer to a real screen:
 
 - **More job sources** — extend the crawler beyond the current company set to job boards and aggregators, so matching isn't limited to a fixed list.
-- **Incremental crawls** — track which postings were already seen and fetch only new ones, instead of re-crawling and re-analyzing the full set each run.
 - **Voice mock interviews** — speech in and out for the AI interviewer, closer to a real screen than a text chat.
 
 ## Related Projects

@@ -79,27 +79,60 @@ def _export_full_csv() -> None:
         logger.warning(f"   - 回写全量 CSV 失败（不影响 jobs.db）: {exc}")
 
 
-def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None, remotive: Optional[Dict[str, Any]] = None, sources: Optional[List] = None) -> Dict[str, Any]:
+def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None, remotive: Optional[Dict[str, Any]] = None, sources: Optional[List] = None, incremental: bool = False) -> Dict[str, Any]:
     """
     步骤1: 爬取原始岗位数据
 
     数据源走 JobSource 注册表（findjobs/job_source.py）：默认公司爬虫组，
     配置了 freehire/remotive 时追加聚合源；传 sources 可整体替换（用户自定义源）。
+
+    incremental=True 时按 jobs.db 的已见账本过滤：每个源拉到的岗位里，
+    之前爬过的不再进入后续分析（也不重复占 LLM 预算），只把新岗位写进
+    原始文件；账本仍按"本次拉到的全量"刷新。声明了支持早停的源还会在
+    翻页时提前收工（比如按更新时间倒序返回的腾讯）。
     """
     print_banner("步骤 1/3: 爬取原始岗位数据")
 
     from . import job_source as job_source_mod
+    from . import storage
 
     active = sources if sources is not None else job_source_mod.all_sources(
         companies=companies, freehire=freehire, remotive=remotive, root=ROOT_DIR
     )
 
+    db_path = ROOT_DIR / 'jobs.db'
     jobs: List[Dict[str, Any]] = []
+    total_fetched = 0
     for source in active:
+        seen: set = set()
         try:
-            jobs.extend(source.fetch())
+            if incremental:
+                seen = storage.load_seen_keys(db_path, source.name)
+                if seen and hasattr(source, 'set_seen'):
+                    source.set_seen(seen)
+            fetched = source.fetch()
         except Exception as exc:
             logger.warning(f"⚠️  {source.name} 源拉取失败，跳过: {exc}")
+            continue
+        total_fetched += len(fetched)
+        if incremental:
+            new_jobs = [j for j in fetched if job_source_mod.job_key(j) not in seen]
+            storage.mark_seen(db_path, source.name, [job_source_mod.job_key(j) for j in fetched])
+            if fetched:
+                logger.info(
+                    f"   - {source.name}: 拉到 {len(fetched)}，"
+                    f"新岗位 {len(new_jobs)}，已见跳过 {len(fetched) - len(new_jobs)}"
+                )
+            jobs.extend(new_jobs)
+        else:
+            jobs.extend(fetched)
+
+    if incremental and total_fetched and not jobs:
+        logger.info("✅ 增量爬取完成: 所有源都没有新岗位")
+        raw_file = ROOT_DIR / 'crawled_jobs_raw.json'
+        with open(raw_file, 'w', encoding='utf-8') as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+        return {'success': True, 'count': 0, 'file': str(raw_file)}
 
     if not jobs:
         logger.error("❌ 爬取失败: 所有源都没有产出")
@@ -353,6 +386,7 @@ def main():
   python pipeline.py --analyze-only     # 只分析已爬取的数据
   python pipeline.py --max-jobs 100     # 只分析前100个岗位（测试用）
   python pipeline.py -c tencent amazon  # 只爬取指定公司
+  python pipeline.py --incremental      # 增量爬取：已见岗位不再进分析和 LLM 预算
   python pipeline.py --freehire --freehire-query "backend"  # 公司爬虫之外再拉 freehire 聚合源
         """
     )
@@ -387,6 +421,9 @@ def main():
                         help='Remotive 分类 slug，如 software-dev')
     parser.add_argument('--remotive-max', type=int, default=200,
                         help='Remotive 源最大岗位数')
+    parser.add_argument('--incremental', action='store_true',
+                        help='增量爬取：jobs.db 已见账本里的岗位不再进入分析和 LLM 预算，'
+                             '支持早停的源会提前收工；默认仍全量爬取')
 
     args = parser.parse_args()
 
@@ -428,10 +465,15 @@ def main():
             step3_prepare_for_website()
     elif args.crawl_only:
         # 只爬取
-        step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts)
+        step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts,
+                         incremental=args.incremental)
     else:
         # 完整流程
-        result1 = step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts)
+        result1 = step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts,
+                                   incremental=args.incremental)
+        if result1['success'] and args.incremental and result1.get('count') == 0:
+            logger.info("没有新岗位，跳过分析和导出（jobs.db 未变化）")
+            return
         if result1['success']:
             result2 = step2_analyze_with_llm(args.max_jobs, reanalyze_all=args.reanalyze_all)
             if result2['success']:

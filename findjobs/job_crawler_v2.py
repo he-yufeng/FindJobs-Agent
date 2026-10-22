@@ -54,18 +54,36 @@ except ImportError:
 
 class JobCrawlerBase(ABC):
     """爬虫基类"""
-    
+
+    #: True when the source lists postings newest-first, so a page whose
+    #: items are all already-seen means nothing new is coming on later pages.
+    #: Only enable after verifying the ordering against the live source.
+    ORDERS_NEWEST_FIRST = False
+
     def __init__(self, max_jobs: int = MAX_JOBS_PER_COMPANY):
         self.session = requests.Session()
         self.session.headers.update(DEFAULT_HEADERS)
         self.jobs: List[Dict] = []
         self.max_jobs = max_jobs
-    
+        self._seen_keys: set = set()
+
+    def set_seen(self, job_keys: set) -> None:
+        """Hand the crawler the ledger of already-fetched job keys. Sources
+        with ORDERS_NEWEST_FIRST use it to stop pagination early; every
+        source still gets filtered again in the pipeline."""
+        self._seen_keys = set(job_keys)
+
+    def _all_seen(self, job_ids: List[str]) -> bool:
+        """True when every id on the current page is already in the ledger."""
+        return bool(self._seen_keys) and bool(job_ids) and all(
+            f"{self.company_name}|{jid}" in self._seen_keys for jid in job_ids
+        )
+
     @property
     @abstractmethod
     def company_name(self) -> str:
         pass
-    
+
     @abstractmethod
     def crawl(self) -> List[Dict]:
         pass
@@ -330,10 +348,16 @@ class JDSeleniumCrawler(SeleniumCrawlerBase):
 
 class TencentCrawler(JobCrawlerBase):
     """腾讯"""
+
+    # careers.tencent.com Query API returns postings newest-first by
+    # LastUpdateTime (verified against the live endpoint 2026-10-22), so a
+    # page with nothing new means later pages have nothing new either.
+    ORDERS_NEWEST_FIRST = True
+
     @property
     def company_name(self) -> str:
         return "腾讯"
-    
+
     def crawl(self) -> List[Dict]:
         logger.info(f"🚀 {self.company_name}...")
         for job_type in ['social', 'campus']:
@@ -350,6 +374,11 @@ class TencentCrawler(JobCrawlerBase):
                     data = resp.json()
                     posts = data.get('Data', {}).get('Posts', [])
                     if not posts:
+                        break
+                    if self.ORDERS_NEWEST_FIRST and self._all_seen(
+                        [f"TC_{post.get('PostId', '')}" for post in posts]
+                    ):
+                        logger.info(f"  └─ 第 {page} 页全部是已见岗位，增量模式提前停")
                         break
                     for post in posts:
                         if self._should_stop():
@@ -679,21 +708,28 @@ NAMES = {
 }
 
 
-def run_crawlers(companies: List[str], output_file: str, max_jobs: int = MAX_JOBS_PER_COMPANY):
-    """运行爬虫"""
+def run_crawlers(companies: List[str], output_file: str, max_jobs: int = MAX_JOBS_PER_COMPANY, seen_keys: Optional[set] = None):
+    """运行爬虫
+
+    seen_keys 是跨运行的已见岗位账本（`公司|job_id` 字符串）。声明了
+    ORDERS_NEWEST_FIRST 的爬虫拿它提前停页；其余爬虫忽略它，增量过滤
+    仍由 pipeline 在 fetch 之后统一做。
+    """
     all_jobs = []
     stats = {}
-    
+
     logger.info(f"\n{'='*60}")
     logger.info(f"📥 爬取 {len(companies)} 家公司，每家最多 {max_jobs} 个岗位")
     logger.info(f"{'='*60}\n")
-    
+
     for key in companies:
         if key not in CRAWLERS:
             logger.warning(f"⚠️  未知公司: {key}")
             continue
         try:
             crawler = CRAWLERS[key](max_jobs=max_jobs)
+            if seen_keys:
+                crawler.set_seen(seen_keys)
             jobs = crawler.crawl()
             if jobs:
                 all_jobs.extend(jobs)
@@ -734,17 +770,25 @@ def main():
     parser.add_argument('-f', '--file', default='crawled_jobs_raw.json', help='输出文件')
     parser.add_argument('-m', '--max', type=int, default=MAX_JOBS_PER_COMPANY, help='每家最大岗位数')
     parser.add_argument('--list', action='store_true', help='列出支持的公司')
+    parser.add_argument('--seen-file', default=None, help='已见岗位账本 JSON（`公司|job_id` 字符串列表），支持早停的爬虫会用到')
     args = parser.parse_args()
-    
+
     if args.list:
         print("\n支持的公司:")
         for k, v in NAMES.items():
             print(f"  {k:12} -> {v}")
         print("\n使用: python job_crawler_v2.py -c tencent netease amazon")
         return
-    
+
+    seen_keys = None
+    if args.seen_file:
+        try:
+            with open(args.seen_file, 'r', encoding='utf-8') as fh:
+                seen_keys = set(json.load(fh))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning(f"已见账本读取失败，按全量爬: {exc}")
     companies = args.companies or list(CRAWLERS.keys())
-    run_crawlers(companies, args.file, args.max)
+    run_crawlers(companies, args.file, args.max, seen_keys=seen_keys)
 
 
 if __name__ == '__main__':

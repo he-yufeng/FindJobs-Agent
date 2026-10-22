@@ -85,16 +85,32 @@ class CompanyCrawlerSource:
     def __init__(self, companies: Optional[List[str]] = None, root: Optional[Path] = None):
         self.companies = companies
         self.root = Path(root) if root else ROOT_DIR
+        self._seen_keys: set = set()
+
+    def set_seen(self, job_keys: set) -> None:
+        """增量模式下把已见账本转给子进程：支持早停的爬虫少翻页。"""
+        self._seen_keys = set(job_keys)
 
     def fetch(self) -> List[Dict[str, Any]]:
         raw_file = self.root / 'crawled_jobs_raw.json'
         cmd = [sys.executable, '-m', 'findjobs.job_crawler_v2', '-f', str(raw_file)]
         if self.companies:
             cmd.extend(['-c'] + self.companies)
-        logger.info(f"company-crawlers 源: {' '.join(cmd)}")
-        result = subprocess.run(cmd, cwd=str(self.root))
-        if result.returncode != 0:
-            logger.warning("company-crawlers 源非零退出，读已有产物继续")
+        seen_file = None
+        if self._seen_keys:
+            seen_file = self.root / 'data' / '.crawl_seen_handoff.json'
+            seen_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(seen_file, 'w', encoding='utf-8') as f:
+                json.dump(sorted(self._seen_keys), f, ensure_ascii=False)
+            cmd.extend(['--seen-file', str(seen_file)])
+        try:
+            logger.info(f"company-crawlers 源: {' '.join(cmd)}")
+            result = subprocess.run(cmd, cwd=str(self.root))
+            if result.returncode != 0:
+                logger.warning("company-crawlers 源非零退出，读已有产物继续")
+        finally:
+            if seen_file is not None:
+                seen_file.unlink(missing_ok=True)
         if not raw_file.exists():
             logger.error("company-crawlers 源未生成输出文件")
             return []
@@ -165,15 +181,22 @@ class RemotiveApiSource:
         ).fetch()
 
 
+def job_key(job: Dict[str, Any]) -> str:
+    """稳定身份键：`公司|job_id`（无 job_id 时 `公司|标题|地点`）。
+
+    单次运行的去重和跨运行的已见账本（storage.crawl_seen）共用这把钥匙，
+    两边的"同一个岗位"才是同一个意思。
+    """
+    identity = job.get('job_id') or f"{job.get('job_title', '')}|{job.get('location', '')}"
+    return f"{job.get('company_name', '')}|{identity}"
+
+
 def dedupe_jobs(jobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """按 公司+job_id（无 job_id 时 公司+标题+地点）去重，先到的赢。"""
+    """按 job_key 去重，先到的赢。"""
     seen: set = set()
     unique: List[Dict[str, Any]] = []
     for job in jobs:
-        key = (
-            job.get('company_name', ''),
-            job.get('job_id') or f"{job.get('job_title', '')}|{job.get('location', '')}",
-        )
+        key = job_key(job)
         if key in seen:
             continue
         seen.add(key)
