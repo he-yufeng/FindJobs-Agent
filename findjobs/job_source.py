@@ -181,6 +181,35 @@ class RemotiveApiSource:
         ).fetch()
 
 
+class AshbyJobSource:
+    """Ashby 招聘板源（OpenAI/Perplexity/Notion 等海外公司，免 key），进程内调用。
+
+    与公司爬虫组互补：那批是国内大厂，这里是海外 AI/科技公司。
+    """
+
+    name = "ashby"
+
+    def __init__(self, options: Optional[Dict[str, Any]] = None, root: Optional[Path] = None):
+        self.options = dict(options or {})
+        self.root = Path(root) if root else ROOT_DIR
+
+    def fetch(self) -> List[Dict[str, Any]]:
+        from findjobs.ashby_source import AshbyApiSource  # 延迟导入避开环
+
+        options = self.options
+        companies = options.get('companies')
+        if isinstance(companies, str):
+            companies = [c.strip() for c in companies.split(',') if c.strip()]
+        logger.info(
+            f"ashby 源: companies={','.join(companies) if companies else '默认集'} "
+            f"max={options.get('max_jobs') or 300}"
+        )
+        return AshbyApiSource(
+            companies=companies,
+            limit=options.get('max_jobs') or 300,
+        ).fetch()
+
+
 def job_key(job: Dict[str, Any]) -> str:
     """稳定身份键：`公司|job_id`（无 job_id 时 `公司|标题|地点`）。
 
@@ -208,14 +237,17 @@ def default_sources(
     companies: Optional[List[str]] = None,
     freehire: Optional[Dict[str, Any]] = None,
     remotive: Optional[Dict[str, Any]] = None,
+    ashby: Optional[Dict[str, Any]] = None,
     root: Optional[Path] = None,
 ) -> List[JobSource]:
-    """默认注册表：公司爬虫组，配置了 freehire/remotive 时追加聚合源。"""
+    """默认注册表：公司爬虫组，配置了 freehire/remotive/ashby 时追加聚合源。"""
     sources: List[JobSource] = [CompanyCrawlerSource(companies, root=root)]
     if freehire:
         sources.append(FreehireApiSource(freehire, root=root))
     if remotive:
         sources.append(RemotiveApiSource(remotive, root=root))
+    if ashby:
+        sources.append(AshbyJobSource(ashby, root=root))
     return sources
 
 
@@ -231,7 +263,10 @@ def all_sources(
     companies: Optional[List[str]] = None,
     freehire: Optional[Dict[str, Any]] = None,
     remotive: Optional[Dict[str, Any]] = None,
+    ashby: Optional[Dict[str, Any]] = None,
     root: Optional[Path] = None,
 ) -> List[JobSource]:
     """默认注册表 + 用户注册的所有源。"""
-    return default_sources(companies=companies, freehire=freehire, remotive=remotive, root=root) + list(_registered)
+    return default_sources(
+        companies=companies, freehire=freehire, remotive=remotive, ashby=ashby, root=root
+    ) + list(_registered)

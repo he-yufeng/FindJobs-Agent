@@ -171,6 +171,7 @@ register_source(RemotiveSource(search="llm", category="software-dev", limit=100)
 | 大疆 | Moka ATS（`apply.careers.dji.com`）| 社招；接口响应是 AES 加密，本地解密（pycryptodome） |
 | 携程 | Moka ATS（`app.mokahr.com`）| 校招频道；适配器实测健康，2026-10 当期 0 在招 |
 | Remotive | `remotive.com/api/remote-jobs` | 免 key 远程岗聚合，JD 全文（HTML 已转纯文本）和申请链接一次给齐 |
+| Ashby 招聘板 | `api.ashbyhq.com/posting-api/job-board/{company}` | OpenAI、Perplexity、Notion、Linear、Ramp 等海外公司在用的免 key 招聘板 API，一次调用返回全部在招岗位（含完整 JD 纯文本）。`--ashby` 开启，`--ashby-companies` 自选公司 slug，2026-10-22 实测在线 |
 
 `data/latest_jobs.json` 是最近一次抓取的快照，共 1,180 条岗位（以上 4 家，2026-09-24 刷新），已提交进仓库，不重新爬也有真实数据可跑。`data/latest_enriched.jsonl` 是同一批岗位跑完 LLM 分析的结果（学历、专业要求、带评分的技能标签、岗位族分类），网站和匹配开箱即用，零 API 花费。
 

@@ -79,12 +79,12 @@ def _export_full_csv() -> None:
         logger.warning(f"   - 回写全量 CSV 失败（不影响 jobs.db）: {exc}")
 
 
-def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None, remotive: Optional[Dict[str, Any]] = None, sources: Optional[List] = None, incremental: bool = False) -> Dict[str, Any]:
+def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[Dict[str, Any]] = None, remotive: Optional[Dict[str, Any]] = None, ashby: Optional[Dict[str, Any]] = None, sources: Optional[List] = None, incremental: bool = False) -> Dict[str, Any]:
     """
     步骤1: 爬取原始岗位数据
 
     数据源走 JobSource 注册表（findjobs/job_source.py）：默认公司爬虫组，
-    配置了 freehire/remotive 时追加聚合源；传 sources 可整体替换（用户自定义源）。
+    配置了 freehire/remotive/ashby 时追加聚合源；传 sources 可整体替换（用户自定义源）。
 
     incremental=True 时按 jobs.db 的已见账本过滤：每个源拉到的岗位里，
     之前爬过的不再进入后续分析（也不重复占 LLM 预算），只把新岗位写进
@@ -97,7 +97,7 @@ def step1_crawl_jobs(companies: Optional[List[str]] = None, freehire: Optional[D
     from . import storage
 
     active = sources if sources is not None else job_source_mod.all_sources(
-        companies=companies, freehire=freehire, remotive=remotive, root=ROOT_DIR
+        companies=companies, freehire=freehire, remotive=remotive, ashby=ashby, root=ROOT_DIR
     )
 
     db_path = ROOT_DIR / 'jobs.db'
@@ -388,6 +388,7 @@ def main():
   python pipeline.py -c tencent amazon  # 只爬取指定公司
   python pipeline.py --incremental      # 增量爬取：已见岗位不再进分析和 LLM 预算
   python pipeline.py --freehire --freehire-query "backend"  # 公司爬虫之外再拉 freehire 聚合源
+  python pipeline.py --ashby --ashby-companies openai,notion  # 再拉 Ashby 海外公司招聘板
         """
     )
 
@@ -421,6 +422,12 @@ def main():
                         help='Remotive 分类 slug，如 software-dev')
     parser.add_argument('--remotive-max', type=int, default=200,
                         help='Remotive 源最大岗位数')
+    parser.add_argument('--ashby', action='store_true',
+                        help='同时拉取 Ashby 招聘板源（OpenAI/Perplexity/Notion 等海外公司，免 key，默认关闭）')
+    parser.add_argument('--ashby-companies', default='',
+                        help='Ashby 公司 slug，逗号分隔（默认 openai,perplexity,notion,linear,ramp）')
+    parser.add_argument('--ashby-max', type=int, default=300,
+                        help='Ashby 源最大岗位数')
     parser.add_argument('--incremental', action='store_true',
                         help='增量爬取：jobs.db 已见账本里的岗位不再进入分析和 LLM 预算，'
                              '支持早停的源会提前收工；默认仍全量爬取')
@@ -442,6 +449,13 @@ def main():
             'search': args.remotive_search,
             'category': args.remotive_category,
             'max_jobs': args.remotive_max,
+        }
+
+    ashby_opts = None
+    if args.ashby:
+        ashby_opts = {
+            'companies': args.ashby_companies,
+            'max_jobs': args.ashby_max,
         }
     
     print_banner("岗位数据处理流水线")
@@ -466,11 +480,11 @@ def main():
     elif args.crawl_only:
         # 只爬取
         step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts,
-                         incremental=args.incremental)
+                         ashby=ashby_opts, incremental=args.incremental)
     else:
         # 完整流程
         result1 = step1_crawl_jobs(args.companies, freehire=freehire_opts, remotive=remotive_opts,
-                                   incremental=args.incremental)
+                                   ashby=ashby_opts, incremental=args.incremental)
         if result1['success'] and args.incremental and result1.get('count') == 0:
             logger.info("没有新岗位，跳过分析和导出（jobs.db 未变化）")
             return

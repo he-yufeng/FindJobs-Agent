@@ -171,6 +171,7 @@ Last full verification 2026-10-13 (`python scripts/verify_crawlers_v2.py` reruns
 | DJI (大疆) | Moka ATS (`apply.careers.dji.com`) | social; responses are AES-encrypted, decrypted locally (pycryptodome) |
 | Ctrip (携程) | Moka ATS (`app.mokahr.com`) | campus channel; adapter verified healthy, zero openings as of 2026-10 |
 | Remotive | `remotive.com/api/remote-jobs` | key-less remote-jobs API; full JD (HTML stripped to text) and apply links included |
+| Ashby board | `api.ashbyhq.com/posting-api/job-board/{company}` | key-less board API used by OpenAI, Perplexity, Notion, Linear, Ramp; one call returns every listed opening with the full plain-text JD. Opt in with `--ashby` (plus `--ashby-companies` to pick slugs), verified live 2026-10-22 |
 
 `data/latest_jobs.json` holds the latest snapshot: 1,180 postings across these four (refreshed 2026-09-24), committed so the pipeline has real data to chew on without a fresh crawl. `data/latest_enriched.jsonl` is the same set after LLM analysis (degree, major requirement, scored skill tags, job family), so the site and the matcher work out of the box with zero API spend.
 
