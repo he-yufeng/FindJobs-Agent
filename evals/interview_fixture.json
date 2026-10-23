@@ -1,0 +1,99 @@
+[
+  {
+    "name": "excellent-deep-correct",
+    "question": "Python 的 GIL 是什么？它对多线程程序有什么影响？什么场景下可以绕开它？",
+    "resume": {
+      "skills": [
+        { "skill_name": "Python", "score": 5 },
+        { "skill_name": "并发编程", "score": 4 }
+      ]
+    },
+    "job": {
+      "title": "后端工程师",
+      "company": "示例科技",
+      "required_skills": [ "Python", "并发编程" ]
+    },
+    "answer": "GIL 是 CPython 解释器里的全局解释器锁，同一时刻只允许一个线程执行 Python 字节码，所以 CPU 密集型的纯 Python 多线程拿不到多核加速。它对 IO 密集型影响不大，因为线程在等待 IO 时会释放 GIL。绕开它的办法：CPU 密集场景用 multiprocessing 起多进程，各自有独立解释器和 GIL；或者把热点交给 C 扩展（NumPy 底层计算就在锁外跑）；也可以用 asyncio 协程在单线程里做大量 IO 并发。补充一点，Python 3.13 的 free-threaded 构建开始去掉 GIL，但生态还没完全跟上。",
+    "expected_score": 5
+  },
+  {
+    "name": "good-solid-but-thinner",
+    "question": "HTTP 和 HTTPS 的区别是什么？HTTPS 怎么保证安全？",
+    "resume": {
+      "skills": [
+        { "skill_name": "计算机网络", "score": 4 }
+      ]
+    },
+    "job": {
+      "title": "后端工程师",
+      "company": "示例科技",
+      "required_skills": [ "计算机网络" ]
+    },
+    "answer": "HTTPS 就是在 HTTP 外面包了一层 TLS。HTTP 明文传输，能被中间人看到和篡改；HTTPS 先握手协商出对称密钥，之后的内容都加密传输。握手时用证书验证服务器身份，防止连到假服务器。",
+    "expected_score": 4
+  },
+  {
+    "name": "shallow-basically-correct",
+    "question": "数据库索引为什么会加快查询？什么情况下索引会失效？",
+    "resume": {
+      "skills": [
+        { "skill_name": "MySQL", "score": 3 }
+      ]
+    },
+    "job": {
+      "title": "后端工程师",
+      "company": "示例科技",
+      "required_skills": [ "MySQL" ]
+    },
+    "answer": "索引就是排好序的数据结构，查起来快，不用全表扫。失效的情况比如查询条件里对字段用了函数，或者 like 以百分号开头。",
+    "expected_score": 3
+  },
+  {
+    "name": "gaps-with-confusion",
+    "question": "Redis 的持久化方式有哪些？RDB 和 AOF 各有什么特点？",
+    "resume": {
+      "skills": [
+        { "skill_name": "Redis", "score": 3 }
+      ]
+    },
+    "job": {
+      "title": "后端工程师",
+      "company": "示例科技",
+      "required_skills": [ "Redis" ]
+    },
+    "answer": "Redis 有 RDB 和 AOF 两种。RDB 是把内存快照存下来，AOF 是把每条命令记下来。RDB 恢复快但是会丢很多数据，AOF 每秒同步一次所以基本不丢数据，而且 AOF 文件比重写后的 RDB 小很多，所以生产上一般只开 AOF。",
+    "expected_score": 2
+  },
+  {
+    "name": "mostly-wrong",
+    "question": "什么是事务的 ACID？隔离级别解决什么问题？",
+    "resume": {
+      "skills": [
+        { "skill_name": "MySQL", "score": 2 }
+      ]
+    },
+    "job": {
+      "title": "后端工程师",
+      "company": "示例科技",
+      "required_skills": [ "MySQL" ]
+    },
+    "answer": "ACID 就是原子性、一致性、隔离性、持久性。原子性是说事务里的操作要么都成功要么都失败，一致性是数据要符合业务规则，隔离性是两个事务互不影响，持久性是提交后就写进磁盘。隔离级别有读未提交、读已提交、可重复读和串行化，可重复读能完全避免脏读、不可重复读和幻读，MySQL 默认就是这个级别所以不会有并发问题。",
+    "expected_score": 1
+  },
+  {
+    "name": "off-topic-no-answer",
+    "question": "讲讲你对分布式系统 CAP 理论的理解。",
+    "resume": {
+      "skills": [
+        { "skill_name": "Python", "score": 2 }
+      ]
+    },
+    "job": {
+      "title": "后端工程师",
+      "company": "示例科技",
+      "required_skills": [ "分布式系统" ]
+    },
+    "answer": "这个我不太清楚。我平时的项目主要是写后端接口，分布式的东西接触得不多，不过我学习能力比较强，愿意入职以后补。",
+    "expected_score": 0
+  }
+]
